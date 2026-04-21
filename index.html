@@ -703,7 +703,7 @@ function initNaverMap(){
     renderMapMarkers();
     setTimeout(()=>{map&&map.autoResize();},200);
 
-    // 지도 클릭 → 좌표 기반 POI 검색
+    // 지도 클릭 → Nominatim 역지오코딩으로 장소명 표시
     naver.maps.Event.addListener(map,'click',async function(e){
       const lat=e.coord.lat(), lng=e.coord.lng();
       clearSearchResultMarkers();
@@ -716,101 +716,42 @@ function initNaverMap(){
       card.dataset.lat=lat; card.dataset.lng=lng; card.dataset.name='';
       card.classList.add('show');
 
-      let foundPlace=null;
-      let roadAddr='', jibunAddr='';
+      try{
+        // Nominatim 역지오코딩 - 클릭한 좌표의 장소명/주소 반환
+        const r=await fetch(
+          `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&namedetails=1&addressdetails=1&accept-language=ko,en`,
+          {headers:{'Accept-Language':'ko,en'}}
+        );
+        if(!r.ok) throw new Error('nominatim error');
+        const d=await r.json();
 
-      // 1) 역지오코딩 & 좌표 검색 병렬 실행
-      const [revGeoResult, poiResult] = await Promise.allSettled([
-        // 역지오코딩
-        new Promise(resolve=>{
-          if(!naver.maps.Service){resolve({road:'',jibun:''});return;}
-          naver.maps.Service.reverseGeocode({
-            coords:new naver.maps.LatLng(lat,lng),
-            orders:[naver.maps.Service.OrderType.ROAD_ADDR,naver.maps.Service.OrderType.ADDR].join(',')
-          },function(status,response){
-            if(status!==naver.maps.Service.Status.ERROR&&response.v2){
-              resolve({road:response.v2.address.roadAddress||'',jibun:response.v2.address.jibunAddress||''});
-            } else {
-              resolve({road:'',jibun:''});
-            }
-          });
-        }),
-        // 좌표 기반 직접 검색 - 단순 키워드로 순차 시도
-        (async()=>{
-          const keywords=['맛집','카페','편의점','학교','병원','약국','마트','가게'];
-          for(const kw of keywords){
-            try{
-              const r=await fetch(`/api/search?q=${encodeURIComponent(kw)}&x=${lng}&y=${lat}&radius=100`);
-              if(r.ok){
-                const d=await r.json();
-                if(d.items&&d.items.length>0) return d;
-              }
-            }catch(e){}
-          }
-          return null;
-        })()
-      ]);
+        // 장소명 추출 (한국어 우선)
+        const placeName=
+          (d.namedetails&&(d.namedetails['name:ko']||d.namedetails.name)) ||
+          d.name ||
+          d.display_name.split(',')[0];
 
-      if(revGeoResult.status==='fulfilled'){
-        roadAddr=revGeoResult.value.road||'';
-        jibunAddr=revGeoResult.value.jibun||'';
-      }
+        // 카테고리 추출
+        const cat=d.type||d.class||'';
+        const catMap={amenity:'편의시설',shop:'상점',tourism:'관광',education:'교육',restaurant:'음식점',cafe:'카페',school:'학교',hospital:'병원',pharmacy:'약국',convenience:'편의점',bank:'은행',hotel:'호텔'};
+        const catLabel=catMap[cat]||catMap[d.address?.amenity]||catMap[d.address?.shop]||'';
 
-      // 2) 좌표 검색 결과에서 가장 가까운 장소 찾기
-      const poiData=poiResult.status==='fulfilled'?poiResult.value:null;
-      if(poiData&&poiData.items&&poiData.items.length>0){
-        const sorted=poiData.items.map(item=>({
-          name:item.title.replace(/<[^>]*>/g,''),
-          addr:item.roadAddress||item.address||'',
-          category:item.category||'',
-          tel:item.telephone||'',
-          lat:parseInt(item.mapy)/10000000,
-          lng:parseInt(item.mapx)/10000000,
-        })).sort((a,b)=>Math.hypot(a.lat-lat,a.lng-lng)-Math.hypot(b.lat-lat,b.lng-lng));
-        const nearest=sorted[0];
-        if(Math.hypot(nearest.lat-lat,nearest.lng-lng)<0.001) foundPlace=nearest;
-      }
+        // 주소 조합
+        const addr=d.address;
+        const addrParts=[addr?.road||addr?.quarter||addr?.suburb,addr?.city||addr?.town||addr?.county].filter(Boolean);
+        const addrStr=addrParts.join(', ');
 
-      // 3) POI 못 찾으면 주소로 재검색
-      if(!foundPlace&&(roadAddr||jibunAddr)){
-        try{
-          const r2=await fetch(`/api/search?q=${encodeURIComponent(roadAddr||jibunAddr)}&x=${lng}&y=${lat}&radius=50`);
-          if(r2.ok){
-            const d2=await r2.json();
-            if(d2.items&&d2.items.length>0){
-              const s2=d2.items.map(item=>({
-                name:item.title.replace(/<[^>]*>/g,''),
-                addr:item.roadAddress||item.address||'',
-                category:item.category||'',
-                tel:item.telephone||'',
-                lat:parseInt(item.mapy)/10000000,
-                lng:parseInt(item.mapx)/10000000,
-              })).sort((a,b)=>Math.hypot(a.lat-lat,a.lng-lng)-Math.hypot(b.lat-lat,b.lng-lng));
-              const n2=s2[0];
-              if(Math.hypot(n2.lat-lat,n2.lng-lng)<0.0005) foundPlace=n2;
-            }
-          }
-        }catch(e){}
-      }
-
-      // 4) 결과 표시
-      if(foundPlace){
-        const catText=foundPlace.category?foundPlace.category.split('>').pop():'';
-        document.getElementById('mcc-name').textContent=foundPlace.name;
+        document.getElementById('mcc-name').textContent=placeName||addrStr||`${lat.toFixed(5)}, ${lng.toFixed(5)}`;
         document.getElementById('mcc-addr').innerHTML=
-          (catText?`<span style="font-family:var(--mono);font-size:9.5px;color:var(--accent);letter-spacing:.08em;text-transform:uppercase">${esc(catText)}</span>`:'') +
-          (foundPlace.addr?(catText?' · ':'')+esc(foundPlace.addr):'') +
-          (foundPlace.tel?' · '+esc(foundPlace.tel):'');
-        card.dataset.name=foundPlace.name;
-        card.dataset.lat=foundPlace.lat;
-        card.dataset.lng=foundPlace.lng;
-        removeSearchPin();
-        showSearchPin(foundPlace.lat,foundPlace.lng);
-      } else {
-        const addr=roadAddr||jibunAddr||`${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-        document.getElementById('mcc-name').textContent=addr;
-        document.getElementById('mcc-addr').innerHTML=(roadAddr&&jibunAddr)?esc(jibunAddr):'';
-        card.dataset.name=addr;
+          (catLabel?`<span style="font-family:var(--mono);font-size:9.5px;color:var(--accent);letter-spacing:.08em;text-transform:uppercase">${esc(catLabel)}</span>${addrStr?' · ':''}`:'')+
+          (addrStr?esc(addrStr):'');
+        card.dataset.name=placeName||addrStr||`${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+
+      }catch(err){
+        // 실패 시 좌표만 표시
+        const coordStr=`${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+        document.getElementById('mcc-name').textContent=coordStr;
+        card.dataset.name=coordStr;
       }
     });
   } catch(e){ console.error('Naver map init error:',e); }
