@@ -733,38 +733,55 @@ function initNaverMap(){
         });
       }
 
-      // 2) 좌표 기반으로 반경 100m 내 장소 검색
-      // 검색어: 역지오코딩 주소의 동/건물명 사용
-      const dongName = (jibunAddr||roadAddr).split(' ').slice(-2).join(' ') || '근처';
+      // 2) 좌표 기반으로 반경 내 장소 검색
       let foundPlace = null;
+      const searchAddr = roadAddr || jibunAddr;
 
-      try{
-        // 좌표 + 반경 100m로 좁혀서 검색
-        const r = await fetch(`/api/search?q=${encodeURIComponent(dongName)}&x=${lng}&y=${lat}&radius=100`);
-        if(r.ok){
-          const data = await r.json();
-          if(data.items && data.items.length > 0){
-            // 좌표 거리로 정렬 후 가장 가까운 것 선택
-            const sorted = data.items.map(item=>({
-              name: item.title.replace(/<[^>]*>/g,''),
-              addr: item.roadAddress||item.address||'',
-              category: item.category||'',
-              tel: item.telephone||'',
-              lat: parseInt(item.mapy)/10000000,
-              lng: parseInt(item.mapx)/10000000,
-            })).sort((a,b)=>{
-              const da = Math.hypot(a.lat-lat, a.lng-lng);
-              const db = Math.hypot(b.lat-lat, b.lng-lng);
-              return da-db;
-            });
+      if(searchAddr){
+        // 도로명 주소 전체로 검색 + 좌표 반경 50m
+        try{
+          const r = await fetch(`/api/search?q=${encodeURIComponent(searchAddr)}&x=${lng}&y=${lat}&radius=50`);
+          if(r.ok){
+            const data = await r.json();
+            if(data.items && data.items.length > 0){
+              const sorted = data.items.map(item=>({
+                name: item.title.replace(/<[^>]*>/g,''),
+                addr: item.roadAddress||item.address||'',
+                category: item.category||'',
+                tel: item.telephone||'',
+                lat: parseInt(item.mapy)/10000000,
+                lng: parseInt(item.mapx)/10000000,
+              })).sort((a,b)=>Math.hypot(a.lat-lat,a.lng-lng)-Math.hypot(b.lat-lat,b.lng-lng));
 
-            // 50m 이내 장소만 사용
-            const nearest = sorted[0];
-            const dist = Math.hypot(nearest.lat-lat, nearest.lng-lng);
-            if(dist < 0.0005) foundPlace = nearest;
+              const nearest = sorted[0];
+              if(Math.hypot(nearest.lat-lat, nearest.lng-lng) < 0.0005) foundPlace = nearest;
+            }
           }
+        }catch(e){}
+
+        // 첫 검색 실패 시 건물번호만 추출해서 재검색
+        if(!foundPlace){
+          const buildingNum = searchAddr.split(' ').pop();
+          try{
+            const r2 = await fetch(`/api/search?q=${encodeURIComponent(buildingNum)}&x=${lng}&y=${lat}&radius=30`);
+            if(r2.ok){
+              const data2 = await r2.json();
+              if(data2.items && data2.items.length > 0){
+                const sorted2 = data2.items.map(item=>({
+                  name: item.title.replace(/<[^>]*>/g,''),
+                  addr: item.roadAddress||item.address||'',
+                  category: item.category||'',
+                  tel: item.telephone||'',
+                  lat: parseInt(item.mapy)/10000000,
+                  lng: parseInt(item.mapx)/10000000,
+                })).sort((a,b)=>Math.hypot(a.lat-lat,a.lng-lng)-Math.hypot(b.lat-lat,b.lng-lng));
+                const nearest2 = sorted2[0];
+                if(Math.hypot(nearest2.lat-lat, nearest2.lng-lng) < 0.0003) foundPlace = nearest2;
+              }
+            }
+          }catch(e){}
         }
-      }catch(e){ console.warn('POI search failed', e); }
+      }
 
       // 3) 결과 표시
       if(foundPlace){
