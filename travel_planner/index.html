@@ -565,7 +565,6 @@ function openTrip(id){
     initNaverMap();
   },350);
 }
-}
 function curTrip(){return trips.find(t=>t.id===currentTripId);}
 function updateTripHeader(){const trip=curTrip();if(!trip)return;document.getElementById('trip-title-el').textContent=trip.title;document.getElementById('trip-sub-el').textContent=trip.subtitle||'';}
 
