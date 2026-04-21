@@ -733,12 +733,8 @@ function initNaverMap(){
       card.classList.add('show');
 
       try{
-        // Overpass API: 반경 40m 내 이름 있는 노드/웨이 전체 조회
-        const overpassQuery=`[out:json][timeout:10];(node["name"](around:40,${lat},${lng});way["name"](around:40,${lat},${lng}););out body;`;
-        const r=await fetch('https://overpass-api.de/api/interpreter',{
-          method:'POST',
-          body:'data='+encodeURIComponent(overpassQuery)
-        });
+        // Overpass 프록시로 반경 40m 내 장소 전체 조회
+        const r=await fetch(`/api/overpass?lat=${lat}&lng=${lng}&radius=40`);
         const d=await r.json();
         const elements=d.elements||[];
 
