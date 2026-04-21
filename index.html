@@ -703,7 +703,7 @@ function initNaverMap(){
     renderMapMarkers();
     setTimeout(()=>{map&&map.autoResize();},200);
 
-    // 지도 클릭 → 역지오코딩 + 근처 장소 검색
+    // 지도 클릭 → 좌표 기반 POI 검색
     naver.maps.Event.addListener(map,'click',async function(e){
       const lat=e.coord.lat(), lng=e.coord.lng();
       clearSearchResultMarkers();
@@ -713,74 +713,78 @@ function initNaverMap(){
       const card=document.getElementById('map-click-card');
       document.getElementById('mcc-name').textContent='장소 정보 불러오는 중...';
       document.getElementById('mcc-addr').innerHTML='';
-      card.dataset.lat=lat;card.dataset.lng=lng;card.dataset.name='';
+      card.dataset.lat=lat; card.dataset.lng=lng; card.dataset.name='';
       card.classList.add('show');
 
-      // 역지오코딩으로 주소 먼저 표시
+      // 1) 역지오코딩으로 주소 가져오기
       let roadAddr='', jibunAddr='';
       if(naver.maps.Service){
         await new Promise(resolve=>{
           naver.maps.Service.reverseGeocode({
-            coords:new naver.maps.LatLng(lat,lng),
-            orders:[naver.maps.Service.OrderType.ROAD_ADDR,naver.maps.Service.OrderType.ADDR].join(',')
-          },function(status,response){
-            if(status!==naver.maps.Service.Status.ERROR){
-              roadAddr=response.v2.address.roadAddress||'';
-              jibunAddr=response.v2.address.jibunAddress||'';
+            coords: new naver.maps.LatLng(lat,lng),
+            orders: [naver.maps.Service.OrderType.ROAD_ADDR, naver.maps.Service.OrderType.ADDR].join(',')
+          }, function(status, response){
+            if(status !== naver.maps.Service.Status.ERROR){
+              roadAddr = response.v2.address.roadAddress||'';
+              jibunAddr = response.v2.address.jibunAddress||'';
             }
             resolve();
           });
         });
       }
 
-      // 클릭 위치 주변 장소 검색 (도로명 주소로 검색)
-      const searchQuery=roadAddr||jibunAddr||`${lat.toFixed(4)},${lng.toFixed(4)}`;
-      let foundPlace=null;
+      // 2) 좌표 기반으로 반경 100m 내 장소 검색
+      // 검색어: 역지오코딩 주소의 동/건물명 사용
+      const dongName = (jibunAddr||roadAddr).split(' ').slice(-2).join(' ') || '근처';
+      let foundPlace = null;
+
       try{
-        const r=await fetch(`/api/search?q=${encodeURIComponent(searchQuery)}`);
+        // 좌표 + 반경 100m로 좁혀서 검색
+        const r = await fetch(`/api/search?q=${encodeURIComponent(dongName)}&x=${lng}&y=${lat}&radius=100`);
         if(r.ok){
-          const data=await r.json();
-          if(data.items&&data.items.length>0){
-            // 클릭 위치와 가장 가까운 장소 찾기
-            const nearby=data.items.map(item=>({
-              name:item.title.replace(/<[^>]*>/g,''),
-              addr:item.roadAddress||item.address||'',
-              category:item.category||'',
-              tel:item.telephone||'',
-              lat:parseInt(item.mapy)/10000000,
-              lng:parseInt(item.mapx)/10000000,
-            })).filter(item=>{
-              const dist=Math.sqrt(Math.pow(item.lat-lat,2)+Math.pow(item.lng-lng,2));
-              return dist<0.002; // 약 200m 이내
+          const data = await r.json();
+          if(data.items && data.items.length > 0){
+            // 좌표 거리로 정렬 후 가장 가까운 것 선택
+            const sorted = data.items.map(item=>({
+              name: item.title.replace(/<[^>]*>/g,''),
+              addr: item.roadAddress||item.address||'',
+              category: item.category||'',
+              tel: item.telephone||'',
+              lat: parseInt(item.mapy)/10000000,
+              lng: parseInt(item.mapx)/10000000,
+            })).sort((a,b)=>{
+              const da = Math.hypot(a.lat-lat, a.lng-lng);
+              const db = Math.hypot(b.lat-lat, b.lng-lng);
+              return da-db;
             });
-            if(nearby.length>0){
-              // 거리 가장 가까운 것
-              nearby.sort((a,b)=>{
-                const da=Math.sqrt(Math.pow(a.lat-lat,2)+Math.pow(a.lng-lng,2));
-                const db=Math.sqrt(Math.pow(b.lat-lat,2)+Math.pow(b.lng-lng,2));
-                return da-db;
-              });
-              foundPlace=nearby[0];
-            }
+
+            // 50m 이내 장소만 사용
+            const nearest = sorted[0];
+            const dist = Math.hypot(nearest.lat-lat, nearest.lng-lng);
+            if(dist < 0.0005) foundPlace = nearest;
           }
         }
-      }catch(e){}
+      }catch(e){ console.warn('POI search failed', e); }
 
+      // 3) 결과 표시
       if(foundPlace){
-        const cat=foundPlace.category?(foundPlace.category.split('>').pop()+' · '):'';
-        document.getElementById('mcc-name').textContent=foundPlace.name;
-        document.getElementById('mcc-addr').innerHTML=`<span style="font-family:var(--mono);font-size:9.5px;color:var(--accent);letter-spacing:.08em;text-transform:uppercase">${esc(foundPlace.category.split('>').pop()||'')}</span>${foundPlace.addr?' · '+esc(foundPlace.addr):''}${foundPlace.tel?' · '+esc(foundPlace.tel):''}`;
-        card.dataset.name=foundPlace.name;
-        card.dataset.lat=foundPlace.lat;
-        card.dataset.lng=foundPlace.lng;
+        const catText = foundPlace.category ? foundPlace.category.split('>').pop() : '';
+        document.getElementById('mcc-name').textContent = foundPlace.name;
+        document.getElementById('mcc-addr').innerHTML =
+          (catText ? `<span style="font-family:var(--mono);font-size:9.5px;color:var(--accent);letter-spacing:.08em;text-transform:uppercase">${esc(catText)}</span>` : '') +
+          (foundPlace.addr ? (catText?' · ':'')+esc(foundPlace.addr) : '') +
+          (foundPlace.tel ? ' · '+esc(foundPlace.tel) : '');
+        card.dataset.name = foundPlace.name;
+        card.dataset.lat = foundPlace.lat;
+        card.dataset.lng = foundPlace.lng;
         removeSearchPin();
-        showSearchPin(foundPlace.lat,foundPlace.lng);
+        showSearchPin(foundPlace.lat, foundPlace.lng);
       } else {
-        // 장소 못 찾으면 주소 표시
-        const addr=roadAddr||jibunAddr||`${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-        document.getElementById('mcc-name').textContent=addr;
-        document.getElementById('mcc-addr').innerHTML=jibunAddr&&roadAddr?esc(jibunAddr):'';
-        card.dataset.name=addr;
+        // POI 없으면 주소 표시
+        const addr = roadAddr || jibunAddr || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+        document.getElementById('mcc-name').textContent = addr;
+        document.getElementById('mcc-addr').innerHTML = (roadAddr && jibunAddr) ? esc(jibunAddr) : '';
+        card.dataset.name = addr;
       }
     });
   } catch(e){ console.error('Naver map init error:',e); }
