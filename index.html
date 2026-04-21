@@ -750,12 +750,10 @@ function initNaverMap(){
         });
       });
 
-      // 2) Overpass(100m) + 네이버 주소 검색 병렬 실행
+      // 2) Overpass(50m) + 네이버 nearby 검색 병렬 실행
       const [overpassRes, naverRes] = await Promise.allSettled([
-        fetch(`/api/overpass?lat=${lat}&lng=${lng}&radius=100`).then(r=>r.ok?r.json():null).catch(()=>null),
-        (roadAddr||jibunAddr)
-          ? fetch(`/api/search?q=${encodeURIComponent(roadAddr||jibunAddr)}&x=${lng}&y=${lat}&radius=100`).then(r=>r.ok?r.json():null).catch(()=>null)
-          : Promise.resolve(null)
+        fetch(`/api/overpass?lat=${lat}&lng=${lng}&radius=50`).then(r=>r.ok?r.json():null).catch(()=>null),
+        fetch(`/api/search?nearby=1&x=${lng}&y=${lat}&radius=80`).then(r=>r.ok?r.json():null).catch(()=>null)
       ]);
 
       // 3) 결과 합치기 (중복 제거)
@@ -774,7 +772,7 @@ function initNaverMap(){
         });
       }
 
-      // 네이버 결과 — 100m 이내 거리순
+      // 네이버 nearby 결과 — 80m 이내 거리순
       const nd=naverRes.status==='fulfilled'?naverRes.value:null;
       if(nd?.items){
         nd.items.forEach(item=>{
@@ -782,9 +780,10 @@ function initNaverMap(){
           if(seen.has(name))return;
           const iLat=parseInt(item.mapy)/10000000;
           const iLng=parseInt(item.mapx)/10000000;
-          if(Math.hypot(iLat-lat,iLng-lng)>0.001)return; // 약 100m
+          const d=Math.hypot(iLat-lat,iLng-lng);
+          if(d>0.0008)return;
           seen.add(name);
-          places.push({name,category:item.category||'',lat:iLat,lng:iLng,tel:item.telephone||'',addr:item.roadAddress||item.address||'',dist:Math.hypot(iLat-lat,iLng-lng)});
+          places.push({name,category:item.category||'',lat:iLat,lng:iLng,tel:item.telephone||'',addr:item.roadAddress||item.address||'',dist:d});
         });
       }
 
