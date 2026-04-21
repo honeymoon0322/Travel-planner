@@ -816,29 +816,59 @@ function initNaverMap(){
         // 클릭한 가게 감지됨 → 헤더에 크게 표시
         const catRaw=primary.category||'';
         const catLabel=catKo[catRaw]||catRaw.split('>').pop()||'';
-        const distM=Math.round(primary.dist)+'m';
         document.getElementById('mcc-name').textContent=primary.name;
         document.getElementById('mcc-addr').innerHTML=
           (catLabel?`<span style="font-family:var(--mono);font-size:9.5px;color:var(--accent);letter-spacing:.08em;text-transform:uppercase">${esc(catLabel)}</span> · `:'') +
+          (primary.addr?esc(primary.addr.split(' ').slice(-3).join(' '))+' · ':'')+
           (primary.tel?esc(primary.tel)+' · ':'')+
-          `<span style="color:var(--muted-2)">${distM}</span>`;
+          `<span style="color:var(--muted-2)">${Math.round(primary.dist)}m</span>`;
         card.dataset.name=primary.name; card.dataset.lat=primary.lat; card.dataset.lng=primary.lng;
         footEl.style.display='flex';
         removeSearchPin(); showSearchPin(primary.lat,primary.lng);
 
-        // 주변 다른 가게들은 리스트로
-        if(nearby.length>0){
-          listEl.innerHTML=`<div style="padding:8px 16px 4px;font-family:var(--mono);font-size:9.5px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;border-top:1px solid var(--hairline)">이 건물 다른 장소 ${nearby.length}개</div>`+
-          nearby.map(p=>{
-            const cl=catKo[p.category||'']||(p.category||'').split('>').pop()||'';
-            return `<div class="mcc-item">
-              <div class="mcc-item-info">
-                <div class="mcc-item-name">${esc(p.name)}</div>
-                <div class="mcc-item-cat">${[cl,Math.round(p.dist)+'m',p.tel].filter(Boolean).join(' · ')}</div>
-              </div>
-              <button class="mcc-item-add" onclick="addPlaceAsEvent(${p.lat},${p.lng},'${p.name.replace(/'/g,'\\u0027')}')">+ 추가</button>
-            </div>`;
-          }).join('');
+        // 같은 주소로 재검색해서 같은 건물 가게 찾기
+        listEl.innerHTML=`<div style="padding:8px 16px 4px;font-family:var(--mono);font-size:9.5px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;border-top:1px solid var(--hairline)">주변 장소 불러오는 중...</div>`;
+
+        const searchQuery=primary.addr||(roadAddr||jibunAddr);
+        if(searchQuery){
+          try{
+            const nr=await fetch(`/api/search?q=${encodeURIComponent(searchQuery)}&x=${lng}&y=${lat}&radius=80`);
+            if(nr.ok){
+              const nd2=await nr.json();
+              const otherPlaces=(nd2.items||[])
+                .map(item=>({
+                  name:item.title.replace(/<[^>]*>/g,''),
+                  category:item.category||'',
+                  lat:parseInt(item.mapy)/10000000,
+                  lng:parseInt(item.mapx)/10000000,
+                  tel:item.telephone||'',
+                  addr:item.roadAddress||item.address||'',
+                }))
+                .filter(p=>{
+                  const d=Math.hypot(p.lat-lat,p.lng-lng)*111000;
+                  p.dist=d;
+                  return p.name!==primary.name && d<=80;
+                })
+                .sort((a,b)=>a.dist-b.dist);
+
+              if(otherPlaces.length>0){
+                listEl.innerHTML=
+                  `<div style="padding:8px 16px 4px;font-family:var(--mono);font-size:9.5px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;border-top:1px solid var(--hairline)">이 주변 다른 장소 ${otherPlaces.length}개</div>`+
+                  otherPlaces.map(p=>{
+                    const cl=catKo[p.category||'']||(p.category||'').split('>').pop()||'';
+                    return `<div class="mcc-item">
+                      <div class="mcc-item-info">
+                        <div class="mcc-item-name">${esc(p.name)}</div>
+                        <div class="mcc-item-cat">${[cl,Math.round(p.dist)+'m',p.tel].filter(Boolean).join(' · ')}</div>
+                      </div>
+                      <button class="mcc-item-add" onclick="addPlaceAsEvent(${p.lat},${p.lng},'${p.name.replace(/'/g,'\\u0027')}')">+ 추가</button>
+                    </div>`;
+                  }).join('');
+              } else {
+                listEl.innerHTML='';
+              }
+            }
+          }catch(e){ listEl.innerHTML=''; }
         } else {
           listEl.innerHTML='';
         }
