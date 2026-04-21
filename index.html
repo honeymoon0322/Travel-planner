@@ -758,9 +758,8 @@ function initNaverMap(){
 
       // 3) 결과 합치기 (중복 제거)
       const seen=new Set();
-      const places=[];
+      const allPlaces=[];
 
-      // Overpass 결과
       const od=overpassRes.status==='fulfilled'?overpassRes.value:null;
       if(od?.elements){
         od.elements.forEach(el=>{
@@ -768,11 +767,10 @@ function initNaverMap(){
           if(!name||seen.has(name))return;
           seen.add(name);
           const eLat=el.lat||lat, eLng=el.lon||lng;
-          places.push({name,category:el.tags?.amenity||el.tags?.shop||el.tags?.tourism||'',lat:eLat,lng:eLng,tel:'',addr:'',dist:Math.hypot(eLat-lat,eLng-lng)});
+          allPlaces.push({name,category:el.tags?.amenity||el.tags?.shop||el.tags?.tourism||'',lat:eLat,lng:eLng,tel:'',addr:'',dist:Math.hypot(eLat-lat,eLng-lng)*111000});
         });
       }
 
-      // 네이버 nearby 결과 — 80m 이내 거리순
       const nd=naverRes.status==='fulfilled'?naverRes.value:null;
       if(nd?.items){
         nd.items.forEach(item=>{
@@ -780,18 +778,21 @@ function initNaverMap(){
           if(seen.has(name))return;
           const iLat=parseInt(item.mapy)/10000000;
           const iLng=parseInt(item.mapx)/10000000;
-          const d=Math.hypot(iLat-lat,iLng-lng);
-          if(d>0.0008)return;
+          const distM=Math.hypot(iLat-lat,iLng-lng)*111000;
+          if(distM>80)return;
           seen.add(name);
-          places.push({name,category:item.category||'',lat:iLat,lng:iLng,tel:item.telephone||'',addr:item.roadAddress||item.address||'',dist:d});
+          allPlaces.push({name,category:item.category||'',lat:iLat,lng:iLng,tel:item.telephone||'',addr:item.roadAddress||item.address||'',dist:distM});
         });
       }
 
-      // 거리순 정렬
-      places.sort((a,b)=>(a.dist||0)-(b.dist||0));
+      allPlaces.sort((a,b)=>a.dist-b.dist);
+
+      // 클릭한 가게(20m 이내 가장 가까운 것) vs 주변 가게
+      const primary=allPlaces.find(p=>p.dist<=20);
+      const nearby=allPlaces.filter(p=>p!==primary);
 
       // 4) 결과 표시
-      if(places.length===0){
+      if(allPlaces.length===0){
         // Nominatim으로 장소명/주소 폴백
         try{
           const nr=await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&namedetails=1&addressdetails=1&accept-language=ko,en`);
@@ -811,28 +812,48 @@ function initNaverMap(){
         footEl.style.display='flex';
         listEl.innerHTML='';
 
-      } else if(places.length===1){
-        const p=places[0];
-        const catRaw=p.category||'';
+      } else if(primary){
+        // 클릭한 가게 감지됨 → 헤더에 크게 표시
+        const catRaw=primary.category||'';
         const catLabel=catKo[catRaw]||catRaw.split('>').pop()||'';
-        document.getElementById('mcc-name').textContent=p.name;
-        document.getElementById('mcc-addr').innerHTML=catLabel?`<span style="font-family:var(--mono);font-size:9.5px;color:var(--accent);letter-spacing:.08em;text-transform:uppercase">${esc(catLabel)}</span>`:'';
-        card.dataset.name=p.name; card.dataset.lat=p.lat; card.dataset.lng=p.lng;
+        const distM=Math.round(primary.dist)+'m';
+        document.getElementById('mcc-name').textContent=primary.name;
+        document.getElementById('mcc-addr').innerHTML=
+          (catLabel?`<span style="font-family:var(--mono);font-size:9.5px;color:var(--accent);letter-spacing:.08em;text-transform:uppercase">${esc(catLabel)}</span> · `:'') +
+          (primary.tel?esc(primary.tel)+' · ':'')+
+          `<span style="color:var(--muted-2)">${distM}</span>`;
+        card.dataset.name=primary.name; card.dataset.lat=primary.lat; card.dataset.lng=primary.lng;
         footEl.style.display='flex';
-        listEl.innerHTML='';
+        removeSearchPin(); showSearchPin(primary.lat,primary.lng);
+
+        // 주변 다른 가게들은 리스트로
+        if(nearby.length>0){
+          listEl.innerHTML=`<div style="padding:8px 16px 4px;font-family:var(--mono);font-size:9.5px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;border-top:1px solid var(--hairline)">이 건물 다른 장소 ${nearby.length}개</div>`+
+          nearby.map(p=>{
+            const cl=catKo[p.category||'']||(p.category||'').split('>').pop()||'';
+            return `<div class="mcc-item">
+              <div class="mcc-item-info">
+                <div class="mcc-item-name">${esc(p.name)}</div>
+                <div class="mcc-item-cat">${[cl,Math.round(p.dist)+'m',p.tel].filter(Boolean).join(' · ')}</div>
+              </div>
+              <button class="mcc-item-add" onclick="addPlaceAsEvent(${p.lat},${p.lng},'${p.name.replace(/'/g,'\\u0027')}')">+ 추가</button>
+            </div>`;
+          }).join('');
+        } else {
+          listEl.innerHTML='';
+        }
 
       } else {
-        document.getElementById('mcc-name').textContent=`이 주변 ${places.length}개 장소`;
+        // primary 없음 → 전체 목록
+        document.getElementById('mcc-name').textContent=`이 주변 ${allPlaces.length}개 장소`;
         document.getElementById('mcc-addr').innerHTML=roadAddr?esc(roadAddr):'';
         footEl.style.display='none';
-        listEl.innerHTML=places.map(p=>{
-          const catRaw=p.category||'';
-          const catLabel=catKo[catRaw]||catRaw.split('>').pop()||'';
-          const distM=p.dist?Math.round(p.dist*111000)+'m':'';
+        listEl.innerHTML=allPlaces.map(p=>{
+          const cl=catKo[p.category||'']||(p.category||'').split('>').pop()||'';
           return `<div class="mcc-item">
             <div class="mcc-item-info">
               <div class="mcc-item-name">${esc(p.name)}</div>
-              <div class="mcc-item-cat">${[catLabel,distM,p.tel].filter(Boolean).join(' · ')}</div>
+              <div class="mcc-item-cat">${[cl,Math.round(p.dist)+'m',p.tel].filter(Boolean).join(' · ')}</div>
             </div>
             <button class="mcc-item-add" onclick="addPlaceAsEvent(${p.lat},${p.lng},'${p.name.replace(/'/g,'\\u0027')}')">+ 추가</button>
           </div>`;
