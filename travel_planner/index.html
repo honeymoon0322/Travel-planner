@@ -559,7 +559,9 @@ function openTrip(id){
   const trip=trips.find(t=>t.id===id);if(!trip)return;
   currentTripId=id;state={currentDay:0,selectedEventId:null,editingEventId:null,editingType:'activity'};
   showScreen('trip');updateTripHeader();renderDaysRail();renderDayHeader();renderTimeline();
-  if(map)renderMapMarkers();
+  if(map){
+    setTimeout(()=>{ map.autoResize(); renderMapMarkers(); }, 100);
+  }
 }
 function curTrip(){return trips.find(t=>t.id===currentTripId);}
 function updateTripHeader(){const trip=curTrip();if(!trip)return;document.getElementById('trip-title-el').textContent=trip.title;document.getElementById('trip-sub-el').textContent=trip.subtitle||'';}
