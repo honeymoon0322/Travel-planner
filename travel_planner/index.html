@@ -94,7 +94,7 @@ input,textarea,select{font-family:inherit;font-size:inherit;color:inherit;}
 .new-trip-card span{font-size:14px;font-weight:500;}
 
 /* ====== TRIP SCREEN ====== */
-#screen-trip{display:grid;grid-template-rows:auto 1fr;}
+#screen-trip{display:flex;flex-direction:column;}
 .topbar{display:flex;align-items:center;justify-content:space-between;padding:15px 26px;background:var(--bg);border-bottom:1px solid var(--hairline);position:relative;z-index:10;gap:12px;}
 .topbar-left{display:flex;align-items:center;gap:10px;}
 .back-btn{display:flex;align-items:center;gap:5px;color:var(--muted);font-size:13px;padding:6px 10px;border-radius:var(--r-sm);}
@@ -107,8 +107,8 @@ input,textarea,select{font-family:inherit;font-size:inherit;color:inherit;}
 .topbar-right{display:flex;gap:6px;}
 
 /* PLANNER */
-.planner{display:grid;grid-template-columns:420px 1fr;height:100%;overflow:hidden;}
-.sidebar{background:var(--surface-warm);border-right:1px solid var(--hairline);display:flex;flex-direction:column;overflow:hidden;}
+.planner{display:flex;flex-direction:row;flex:1;min-height:0;overflow:hidden;}
+.sidebar{width:420px;flex-shrink:0;background:var(--surface-warm);border-right:1px solid var(--hairline);display:flex;flex-direction:column;overflow:hidden;}
 .days-rail{display:flex;gap:6px;padding:13px 17px;border-bottom:1px solid var(--hairline);overflow-x:auto;scrollbar-width:none;align-items:center;}
 .days-rail::-webkit-scrollbar{display:none;}
 .day-chip{display:flex;flex-direction:column;align-items:flex-start;padding:9px 12px;border-radius:var(--r-md);border:1px solid transparent;flex-shrink:0;min-width:64px;}
@@ -153,7 +153,7 @@ input,textarea,select{font-family:inherit;font-size:inherit;color:inherit;}
 .empty-day p{font-size:13px;margin-top:6px;}
 
 /* MAP */
-.map-panel{position:relative;overflow:hidden;background:#EEE8DA;}
+.map-panel{position:relative;overflow:hidden;background:#EEE8DA;flex:1;min-width:0;}
 #map{position:absolute;inset:0;z-index:1;}
 .marker-pin{width:30px;height:30px;border-radius:50% 50% 50% 0;border:2px solid #fff;transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-md);cursor:pointer;}
 .marker-pin span{transform:rotate(45deg);color:#fff;font-family:var(--mono);font-size:11px;font-weight:500;}
@@ -559,9 +559,10 @@ function openTrip(id){
   const trip=trips.find(t=>t.id===id);if(!trip)return;
   currentTripId=id;state={currentDay:0,selectedEventId:null,editingEventId:null,editingType:'activity'};
   showScreen('trip');updateTripHeader();renderDaysRail();renderDayHeader();renderTimeline();
-  if(map){
-    setTimeout(()=>{ map.autoResize(); renderMapMarkers(); }, 100);
-  }
+  setTimeout(()=>{
+    window.dispatchEvent(new Event('resize'));
+    if(map){ map.autoResize(); renderMapMarkers(); }
+  }, 300);
 }
 function curTrip(){return trips.find(t=>t.id===currentTripId);}
 function updateTripHeader(){const trip=curTrip();if(!trip)return;document.getElementById('trip-title-el').textContent=trip.title;document.getElementById('trip-sub-el').textContent=trip.subtitle||'';}
