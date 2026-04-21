@@ -190,6 +190,16 @@ input,textarea,select{font-family:inherit;font-size:inherit;color:inherit;}
 .mcc-close{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--muted);flex-shrink:0;}
 .mcc-close:hover{background:var(--hairline);color:var(--ink);}
 .mcc-close svg{width:13px;height:13px;stroke-width:2;}
+.mcc-list{max-height:240px;overflow-y:auto;border-top:1px solid var(--hairline);}
+.mcc-list:empty{display:none;}
+.mcc-item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 16px;border-bottom:1px solid var(--hairline);cursor:pointer;transition:background .15s;}
+.mcc-item:last-child{border-bottom:none;}
+.mcc-item:hover{background:var(--surface-warm);}
+.mcc-item-info{flex:1;min-width:0;}
+.mcc-item-name{font-size:13px;font-weight:500;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mcc-item-cat{font-family:var(--mono);font-size:9.5px;color:var(--accent);letter-spacing:.08em;text-transform:uppercase;margin-top:2px;}
+.mcc-item-add{flex-shrink:0;padding:4px 8px;border:1px solid var(--hairline-strong);border-radius:var(--r-sm);font-size:11px;font-weight:500;color:var(--ink-2);}
+.mcc-item-add:hover{background:var(--ink);color:#fff;border-color:var(--ink);}
 .mcc-foot{padding:10px 16px;display:flex;gap:8px;background:var(--surface-warm);}
 .mcc-foot .btn{flex:1;justify-content:center;font-size:12.5px;padding:9px;}
 
@@ -362,12 +372,14 @@ input,textarea,select{font-family:inherit;font-size:inherit;color:inherit;}
         <div class="mcc-head">
           <div class="mcc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 0-8 8c0 6 8 12 8 12s8-6 8-12a8 8 0 0 0-8-8z"/></svg></div>
           <div class="mcc-info">
-            <div class="mcc-name" id="mcc-name">위치 정보 불러오는 중...</div>
+            <div class="mcc-name" id="mcc-name">장소 정보 불러오는 중...</div>
             <div class="mcc-addr" id="mcc-addr"></div>
           </div>
           <button class="mcc-close" onclick="closeMapClickCard()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
         </div>
-        <div class="mcc-foot">
+        <!-- 복수 장소 목록 -->
+        <div class="mcc-list" id="mcc-list"></div>
+        <div class="mcc-foot" id="mcc-foot">
           <button class="btn btn-primary" onclick="addClickLocationAsEvent()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             일정에 추가
@@ -703,7 +715,7 @@ function initNaverMap(){
     renderMapMarkers();
     setTimeout(()=>{map&&map.autoResize();},200);
 
-    // 지도 클릭 → Nominatim 역지오코딩으로 장소명 표시
+    // 지도 클릭 → Overpass API로 반경 내 모든 장소 목록 표시
     naver.maps.Event.addListener(map,'click',async function(e){
       const lat=e.coord.lat(), lng=e.coord.lng();
       clearSearchResultMarkers();
@@ -711,44 +723,79 @@ function initNaverMap(){
       showSearchPin(lat,lng);
 
       const card=document.getElementById('map-click-card');
+      const listEl=document.getElementById('mcc-list');
+      const footEl=document.getElementById('mcc-foot');
       document.getElementById('mcc-name').textContent='장소 정보 불러오는 중...';
       document.getElementById('mcc-addr').innerHTML='';
+      listEl.innerHTML='';
+      footEl.style.display='flex';
       card.dataset.lat=lat; card.dataset.lng=lng; card.dataset.name='';
       card.classList.add('show');
 
       try{
-        // Nominatim 역지오코딩 - 클릭한 좌표의 장소명/주소 반환
-        const r=await fetch(
-          `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&namedetails=1&addressdetails=1&accept-language=ko,en`,
-          {headers:{'Accept-Language':'ko,en'}}
-        );
-        if(!r.ok) throw new Error('nominatim error');
+        // Overpass API: 반경 40m 내 이름 있는 노드/웨이 전체 조회
+        const overpassQuery=`[out:json][timeout:10];(node["name"](around:40,${lat},${lng});way["name"](around:40,${lat},${lng}););out body;`;
+        const r=await fetch('https://overpass-api.de/api/interpreter',{
+          method:'POST',
+          body:'data='+encodeURIComponent(overpassQuery)
+        });
         const d=await r.json();
+        const elements=d.elements||[];
 
-        // 장소명 추출 (한국어 우선)
-        const placeName=
-          (d.namedetails&&(d.namedetails['name:ko']||d.namedetails.name)) ||
-          d.name ||
-          d.display_name.split(',')[0];
+        // 이름 있는 것만 필터 + 중복 제거
+        const seen=new Set();
+        const places=elements.filter(el=>{
+          const name=el.tags&&(el.tags['name:ko']||el.tags.name);
+          if(!name||seen.has(name))return false;
+          seen.add(name);
+          return true;
+        }).map(el=>({
+          name:el.tags['name:ko']||el.tags.name||'',
+          category:el.tags.amenity||el.tags.shop||el.tags.tourism||el.tags.leisure||el.tags.office||'',
+          lat:el.lat||lat, lng:el.lon||lng
+        }));
 
-        // 카테고리 추출
-        const cat=d.type||d.class||'';
-        const catMap={amenity:'편의시설',shop:'상점',tourism:'관광',education:'교육',restaurant:'음식점',cafe:'카페',school:'학교',hospital:'병원',pharmacy:'약국',convenience:'편의점',bank:'은행',hotel:'호텔'};
-        const catLabel=catMap[cat]||catMap[d.address?.amenity]||catMap[d.address?.shop]||'';
+        const catKo={restaurant:'음식점',cafe:'카페',convenience:'편의점',school:'학교',hospital:'병원',pharmacy:'약국',bank:'은행',hotel:'호텔',supermarket:'마트',clothes:'의류',beauty:'미용',bar:'주점',fast_food:'패스트푸드',bakery:'베이커리',kindergarten:'유치원',library:'도서관',gym:'헬스장',parking:'주차장'};
 
-        // 주소 조합
-        const addr=d.address;
-        const addrParts=[addr?.road||addr?.quarter||addr?.suburb,addr?.city||addr?.town||addr?.county].filter(Boolean);
-        const addrStr=addrParts.join(', ');
+        if(places.length===0){
+          // 장소 없으면 Nominatim으로 fallback
+          const nr=await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&namedetails=1&addressdetails=1&accept-language=ko,en`);
+          const nd=await nr.json();
+          const placeName=(nd.namedetails&&(nd.namedetails['name:ko']||nd.namedetails.name))||nd.name||nd.display_name.split(',')[0];
+          const addr=nd.address;
+          const addrStr=[addr?.road||addr?.quarter,addr?.city||addr?.town].filter(Boolean).join(', ');
+          document.getElementById('mcc-name').textContent=placeName||addrStr||`${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+          document.getElementById('mcc-addr').innerHTML=addrStr?esc(addrStr):'';
+          card.dataset.name=placeName||addrStr||`${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+          footEl.style.display='flex';
 
-        document.getElementById('mcc-name').textContent=placeName||addrStr||`${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-        document.getElementById('mcc-addr').innerHTML=
-          (catLabel?`<span style="font-family:var(--mono);font-size:9.5px;color:var(--accent);letter-spacing:.08em;text-transform:uppercase">${esc(catLabel)}</span>${addrStr?' · ':''}`:'')+
-          (addrStr?esc(addrStr):'');
-        card.dataset.name=placeName||addrStr||`${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+        } else if(places.length===1){
+          // 장소 하나면 기존처럼 표시
+          const p=places[0];
+          const catLabel=catKo[p.category]||p.category||'';
+          document.getElementById('mcc-name').textContent=p.name;
+          document.getElementById('mcc-addr').innerHTML=catLabel?`<span style="font-family:var(--mono);font-size:9.5px;color:var(--accent);letter-spacing:.08em;text-transform:uppercase">${esc(catLabel)}</span>`:'';
+          card.dataset.name=p.name;
+          footEl.style.display='flex';
+
+        } else {
+          // 장소 여러 개면 목록 표시
+          document.getElementById('mcc-name').textContent=`이 위치에 ${places.length}개의 장소`;
+          document.getElementById('mcc-addr').innerHTML='클릭해서 일정에 추가하세요';
+          footEl.style.display='none';
+          listEl.innerHTML=places.map(p=>{
+            const catLabel=catKo[p.category]||p.category||'';
+            return `<div class="mcc-item">
+              <div class="mcc-item-info">
+                <div class="mcc-item-name">${esc(p.name)}</div>
+                ${catLabel?`<div class="mcc-item-cat">${esc(catLabel)}</div>`:''}
+              </div>
+              <button class="mcc-item-add" onclick="addPlaceAsEvent(${p.lat},${p.lng},'${p.name.replace(/'/g,"\\u0027")}')">+ 추가</button>
+            </div>`;
+          }).join('');
+        }
 
       }catch(err){
-        // 실패 시 좌표만 표시
         const coordStr=`${lat.toFixed(5)}, ${lng.toFixed(5)}`;
         document.getElementById('mcc-name').textContent=coordStr;
         card.dataset.name=coordStr;
