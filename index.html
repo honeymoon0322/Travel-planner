@@ -735,9 +735,20 @@ function initNaverMap(){
             }
           });
         }),
-        // 좌표 기반 직접 검색 (주변 가게)
-        fetch(`/api/search?q=${encodeURIComponent('음식점 카페 편의점 가게 학교 병원')}&x=${lng}&y=${lat}&radius=100`)
-          .then(r=>r.ok?r.json():null).catch(()=>null)
+        // 좌표 기반 직접 검색 - 단순 키워드로 순차 시도
+        (async()=>{
+          const keywords=['맛집','카페','편의점','학교','병원','약국','마트','가게'];
+          for(const kw of keywords){
+            try{
+              const r=await fetch(`/api/search?q=${encodeURIComponent(kw)}&x=${lng}&y=${lat}&radius=100`);
+              if(r.ok){
+                const d=await r.json();
+                if(d.items&&d.items.length>0) return d;
+              }
+            }catch(e){}
+          }
+          return null;
+        })()
       ]);
 
       if(revGeoResult.status==='fulfilled'){
