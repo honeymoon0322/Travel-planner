@@ -9,2057 +9,703 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Geist:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
 <style>
-/* ========== RESET & BASE ========== */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-:root {
-  --bg: #F5F2EA;
-  --surface: #FFFFFF;
-  --surface-warm: #FBF8F0;
-  --ink: #121210;
-  --ink-2: #3A3833;
-  --muted: #817C72;
-  --muted-2: #A8A39A;
-  --hairline: #E5E0D4;
-  --hairline-strong: #D4CDB9;
-  --accent: #2A4A3A;
-  --accent-soft: #3D6650;
-  --warm: #C08552;
-  --warm-soft: #E8C9A8;
-  --sky: #6B8CAE;
-
-  --serif: 'Fraunces', 'Noto Serif KR', serif;
-  --sans: 'Geist', 'Pretendard Variable', -apple-system, sans-serif;
-  --kor: 'Pretendard Variable', 'Geist', sans-serif;
-  --mono: 'JetBrains Mono', monospace;
-
-  --r-sm: 6px;
-  --r-md: 10px;
-  --r-lg: 16px;
-
-  --shadow-xs: 0 1px 2px rgba(18, 18, 16, 0.04);
-  --shadow-sm: 0 2px 8px rgba(18, 18, 16, 0.06);
-  --shadow-md: 0 8px 32px rgba(18, 18, 16, 0.08);
-  --shadow-lg: 0 24px 64px rgba(18, 18, 16, 0.12);
-}
-
-html, body {
-  height: 100%;
-  background: var(--bg);
-  color: var(--ink);
-  font-family: var(--kor);
-  font-size: 14px;
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  font-feature-settings: "ss01", "cv11";
-}
-
-body {
-  overflow: hidden;
-}
-
-button {
-  font-family: inherit;
-  font-size: inherit;
-  cursor: pointer;
-  border: none;
-  background: none;
-  color: inherit;
-  transition: all 0.18s ease;
-}
-
-input, textarea, select {
-  font-family: inherit;
-  font-size: inherit;
-  color: inherit;
-}
-
-/* ========== LAYOUT ========== */
-.app {
-  display: grid;
-  grid-template-rows: auto 1fr;
-  height: 100vh;
-  max-height: 100vh;
-}
-
-.topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 20px 32px;
-  background: var(--bg);
-  border-bottom: 1px solid var(--hairline);
-  position: relative;
-  z-index: 10;
-}
-
-.brand {
-  display: flex;
-  align-items: baseline;
-  gap: 14px;
-}
-
-.brand-mark {
-  font-family: var(--serif);
-  font-style: italic;
-  font-weight: 400;
-  font-size: 26px;
-  letter-spacing: -0.02em;
-  color: var(--ink);
-}
-
-.brand-tag {
-  font-family: var(--mono);
-  font-size: 10px;
-  color: var(--muted);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  padding-top: 4px;
-}
-
-.trip-meta {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  text-align: center;
-}
-
-.trip-title {
-  font-family: var(--serif);
-  font-weight: 400;
-  font-size: 18px;
-  letter-spacing: -0.01em;
-  color: var(--ink);
-}
-
-.trip-title em {
-  font-style: italic;
-  color: var(--accent);
-  font-weight: 300;
-}
-
-.trip-sub {
-  font-family: var(--mono);
-  font-size: 10.5px;
-  color: var(--muted);
-  letter-spacing: 0.08em;
-  margin-top: 2px;
-  text-transform: uppercase;
-}
-
-.topbar-actions {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  border-radius: var(--r-md);
-  font-size: 13px;
-  font-weight: 500;
-  transition: all 0.18s ease;
-  white-space: nowrap;
-}
-
-.btn svg { width: 14px; height: 14px; stroke-width: 1.75; }
-
-.btn-ghost { color: var(--ink-2); }
-.btn-ghost:hover { background: var(--hairline); color: var(--ink); }
-
-.btn-primary {
-  background: var(--ink);
-  color: var(--bg);
-}
-.btn-primary:hover { background: var(--accent); }
-
-.btn-outline {
-  border: 1px solid var(--hairline-strong);
-  color: var(--ink-2);
-}
-.btn-outline:hover { border-color: var(--ink); color: var(--ink); }
-
-/* ========== MAIN GRID ========== */
-.main {
-  display: grid;
-  grid-template-columns: 420px 1fr;
-  overflow: hidden;
-}
-
-/* ========== SIDEBAR ========== */
-.sidebar {
-  background: var(--surface-warm);
-  border-right: 1px solid var(--hairline);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.days-rail {
-  display: flex;
-  gap: 6px;
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--hairline);
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-.days-rail::-webkit-scrollbar { display: none; }
-
-.day-chip {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  padding: 10px 14px;
-  border-radius: var(--r-md);
-  background: transparent;
-  border: 1px solid transparent;
-  flex-shrink: 0;
-  text-align: left;
-  min-width: 72px;
-}
-.day-chip:hover { background: var(--hairline); }
-.day-chip.active {
-  background: var(--ink);
-  color: var(--bg);
-}
-.day-chip .d-num {
-  font-family: var(--serif);
-  font-size: 20px;
-  font-weight: 400;
-  line-height: 1;
-  letter-spacing: -0.02em;
-}
-.day-chip .d-label {
-  font-family: var(--mono);
-  font-size: 9.5px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  opacity: 0.7;
-  margin-top: 4px;
-}
-.day-chip.active .d-label { opacity: 0.85; }
-
-.day-header {
-  padding: 24px 28px 12px;
-}
-.day-header h2 {
-  font-family: var(--serif);
-  font-weight: 300;
-  font-size: 28px;
-  letter-spacing: -0.02em;
-  line-height: 1.15;
-}
-.day-header h2 em {
-  font-style: italic;
-  color: var(--accent);
-}
-.day-header .subtitle {
-  font-family: var(--mono);
-  font-size: 10.5px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin-top: 6px;
-}
-
-.timeline {
-  flex: 1;
-  overflow-y: auto;
-  padding: 8px 28px 140px;
-  position: relative;
-}
-.timeline::-webkit-scrollbar { width: 6px; }
-.timeline::-webkit-scrollbar-thumb { background: var(--hairline-strong); border-radius: 10px; }
-
-.event {
-  display: grid;
-  grid-template-columns: 60px 1fr;
-  gap: 14px;
-  position: relative;
-  padding: 14px 0;
-  cursor: pointer;
-  animation: slideUp 0.4s ease backwards;
-}
-
-@keyframes slideUp {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.event:nth-child(1) { animation-delay: 0.05s; }
-.event:nth-child(2) { animation-delay: 0.1s; }
-.event:nth-child(3) { animation-delay: 0.15s; }
-.event:nth-child(4) { animation-delay: 0.2s; }
-.event:nth-child(5) { animation-delay: 0.25s; }
-.event:nth-child(6) { animation-delay: 0.3s; }
-
-.event::before {
-  content: '';
-  position: absolute;
-  left: 66px;
-  top: 32px;
-  bottom: -14px;
-  width: 1px;
-  background: var(--hairline-strong);
-}
-.event:last-child::before { display: none; }
-
-.event-time {
-  font-family: var(--mono);
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--ink-2);
-  letter-spacing: 0.02em;
-  padding-top: 6px;
-}
-.event-time .t-end {
-  display: block;
-  color: var(--muted-2);
-  font-size: 10px;
-  margin-top: 2px;
-}
-
-.event-body {
-  position: relative;
-}
-
-.event-card {
-  background: var(--surface);
-  border: 1px solid var(--hairline);
-  border-radius: var(--r-md);
-  padding: 12px 14px;
-  transition: all 0.18s ease;
-}
-
-.event:hover .event-card,
-.event.selected .event-card {
-  border-color: var(--ink);
-  box-shadow: var(--shadow-sm);
-  transform: translateX(2px);
-}
-
-.event-type {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-family: var(--mono);
-  font-size: 9.5px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin-bottom: 6px;
-}
-.event-type svg { width: 11px; height: 11px; stroke-width: 2; }
-
-.event-type.t-flight { color: var(--sky); }
-.event-type.t-transit { color: var(--warm); }
-.event-type.t-lodging { color: var(--accent); }
-.event-type.t-activity { color: var(--ink-2); }
-.event-type.t-food { color: #B8564F; }
-
-.event-title {
-  font-size: 15px;
-  font-weight: 500;
-  color: var(--ink);
-  letter-spacing: -0.005em;
-  line-height: 1.3;
-}
-
-.event-meta {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  font-size: 12px;
-  color: var(--muted);
-  margin-top: 6px;
-}
-.event-meta span { display: inline-flex; align-items: center; gap: 4px; }
-.event-meta .chip {
-  padding: 2px 7px;
-  background: var(--surface-warm);
-  border: 1px solid var(--hairline);
-  border-radius: 4px;
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.04em;
-  color: var(--ink-2);
-}
-
-.event-dot {
-  position: absolute;
-  left: -15px;
-  top: 18px;
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: var(--surface);
-  border: 2px solid var(--muted);
-  z-index: 1;
-}
-.event.t-flight .event-dot { border-color: var(--sky); }
-.event.t-transit .event-dot { border-color: var(--warm); }
-.event.t-lodging .event-dot { border-color: var(--accent); background: var(--accent); }
-.event.t-activity .event-dot { border-color: var(--ink-2); }
-.event.t-food .event-dot { border-color: #B8564F; }
-.event.selected .event-dot { background: var(--ink); border-color: var(--ink); transform: scale(1.3); }
-
-.add-event-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  width: 100%;
-  padding: 14px;
-  margin-top: 8px;
-  border: 1px dashed var(--hairline-strong);
-  border-radius: var(--r-md);
-  color: var(--muted);
-  font-size: 13px;
-}
-.add-event-btn:hover {
-  border-color: var(--ink);
-  color: var(--ink);
-  border-style: solid;
-}
-
-/* ========== MAP PANEL ========== */
-.map-panel {
-  position: relative;
-  overflow: hidden;
-  background: #E8E4DA;
-}
-
-#map {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-}
-
-.leaflet-container,
-#map { font-family: var(--kor); }
-
-/* Naver Maps overrides */
-#map { background: #EEE8DA; }
-
-/* Custom markers */
-.marker-pin {
-  width: 30px;
-  height: 30px;
-  border-radius: 50% 50% 50% 0;
-  background: var(--ink);
-  border: 2px solid var(--surface);
-  transform: rotate(-45deg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: var(--shadow-md);
-  cursor: pointer;
-  transition: transform 0.2s ease;
-}
-.marker-pin span {
-  transform: rotate(45deg);
-  color: var(--surface);
-  font-family: var(--mono);
-  font-size: 11px;
-  font-weight: 500;
-}
-.marker-pin:hover,
-.marker-pin.active {
-  transform: rotate(-45deg) scale(1.18);
-}
-
-/* ========== NAVER KEY OVERLAY ========== */
-.key-overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 500;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 40px;
-  background: linear-gradient(135deg, #E8E4DA, #D4CDB9);
-}
-.key-overlay.hidden { display: none; }
-
-.key-card {
-  max-width: 460px;
-  width: 100%;
-  background: var(--surface);
-  border: 1px solid var(--hairline);
-  border-radius: var(--r-lg);
-  padding: 32px;
-  box-shadow: var(--shadow-lg);
-}
-
-.key-card .badge {
-  display: inline-block;
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--accent);
-  background: rgba(42, 74, 58, 0.08);
-  padding: 4px 8px;
-  border-radius: 4px;
-  margin-bottom: 14px;
-}
-.key-card h3 {
-  font-family: var(--serif);
-  font-weight: 400;
-  font-size: 26px;
-  letter-spacing: -0.02em;
-  line-height: 1.2;
-  margin-bottom: 10px;
-}
-.key-card h3 em { font-style: italic; color: var(--accent); }
-
-.key-card p {
-  font-size: 13px;
-  color: var(--muted);
-  line-height: 1.6;
-  margin-bottom: 18px;
-}
-
-.key-steps {
-  background: var(--surface-warm);
-  border: 1px solid var(--hairline);
-  border-radius: var(--r-md);
-  padding: 14px 16px;
-  margin-bottom: 18px;
-}
-.key-steps ol {
-  list-style: none;
-  counter-reset: step;
-  font-size: 12.5px;
-  color: var(--ink-2);
-  line-height: 1.7;
-}
-.key-steps li {
-  counter-increment: step;
-  padding-left: 24px;
-  position: relative;
-}
-.key-steps li::before {
-  content: counter(step);
-  position: absolute;
-  left: 0;
-  top: 2px;
-  width: 18px;
-  height: 18px;
-  background: var(--ink);
-  color: var(--bg);
-  border-radius: 50%;
-  font-family: var(--mono);
-  font-size: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.key-steps a {
-  color: var(--accent);
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-
-.key-input-row {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 10px;
-}
-.key-input-row input {
-  flex: 1;
-  padding: 10px 12px;
-  border: 1px solid var(--hairline-strong);
-  border-radius: var(--r-sm);
-  font-family: var(--mono);
-  font-size: 12px;
-  outline: none;
-}
-.key-input-row input:focus { border-color: var(--ink); }
-
-.key-hint {
-  font-family: var(--mono);
-  font-size: 10.5px;
-  color: var(--muted);
-  letter-spacing: 0.04em;
-}
-
-.key-skip {
-  display: inline-block;
-  margin-top: 14px;
-  color: var(--muted);
-  font-size: 12px;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-.key-skip:hover { color: var(--ink); }
-
-/* Detail overlay */
-.detail-overlay {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  width: 340px;
-  max-height: calc(100vh - 160px);
-  background: var(--surface);
-  border: 1px solid var(--hairline);
-  border-radius: var(--r-lg);
-  box-shadow: var(--shadow-lg);
-  z-index: 1000;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  transform-origin: top right;
-  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.2s;
-}
-.detail-overlay.hidden {
-  transform: scale(0.95);
-  opacity: 0;
-  pointer-events: none;
-}
-
-.detail-head {
-  padding: 20px 22px 14px;
-  border-bottom: 1px solid var(--hairline);
-  position: relative;
-}
-
-.detail-close {
-  position: absolute;
-  top: 14px;
-  right: 14px;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--muted);
-}
-.detail-close:hover { background: var(--hairline); color: var(--ink); }
-.detail-close svg { width: 14px; height: 14px; stroke-width: 2; }
-
-.detail-type-label {
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin-bottom: 4px;
-}
-.detail-title {
-  font-family: var(--serif);
-  font-size: 22px;
-  font-weight: 400;
-  letter-spacing: -0.015em;
-  line-height: 1.2;
-  color: var(--ink);
-  padding-right: 30px;
-}
-.detail-title em { font-style: italic; color: var(--accent); }
-
-.detail-body {
-  padding: 18px 22px;
-  overflow-y: auto;
-  flex: 1;
-}
-
-.detail-section {
-  margin-bottom: 18px;
-}
-.detail-section:last-child { margin-bottom: 0; }
-
-.detail-label {
-  font-family: var(--mono);
-  font-size: 9.5px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin-bottom: 8px;
-}
-
-/* Flight detail layout */
-.flight-route {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  gap: 12px;
-  align-items: center;
-  padding: 14px;
-  background: var(--surface-warm);
-  border-radius: var(--r-md);
-  border: 1px solid var(--hairline);
-  margin-bottom: 14px;
-}
-
-.flight-port {
-  text-align: center;
-}
-.flight-port .code {
-  font-family: var(--serif);
-  font-size: 26px;
-  font-weight: 400;
-  letter-spacing: -0.02em;
-  line-height: 1;
-}
-.flight-port .name {
-  font-size: 10.5px;
-  color: var(--muted);
-  margin-top: 4px;
-  line-height: 1.3;
-}
-.flight-port .time {
-  font-family: var(--mono);
-  font-size: 13px;
-  font-weight: 500;
-  margin-top: 6px;
-  color: var(--ink);
-}
-
-.flight-arrow {
-  color: var(--muted-2);
-  font-size: 18px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-.flight-arrow .duration {
-  font-family: var(--mono);
-  font-size: 9.5px;
-  letter-spacing: 0.08em;
-  color: var(--muted);
-  text-transform: uppercase;
-  margin-top: 2px;
-}
-
-.info-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1px;
-  background: var(--hairline);
-  border: 1px solid var(--hairline);
-  border-radius: var(--r-md);
-  overflow: hidden;
-}
-.info-cell {
-  background: var(--surface);
-  padding: 10px 12px;
-}
-.info-cell .k {
-  font-family: var(--mono);
-  font-size: 9.5px;
-  color: var(--muted);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  margin-bottom: 3px;
-}
-.info-cell .v {
-  font-size: 13px;
-  color: var(--ink);
-  font-weight: 500;
-}
-.info-cell .v.mono { font-family: var(--mono); }
-
-.gate-highlight {
-  background: var(--ink);
-  color: var(--bg);
-}
-.gate-highlight .k { color: var(--muted-2); }
-.gate-highlight .v { color: var(--bg); }
-
-.status-dot {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-family: var(--mono);
-  font-size: 10.5px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--accent-soft);
-  margin-top: 10px;
-}
-.status-dot::before {
-  content: '';
-  width: 6px;
-  height: 6px;
-  background: var(--accent-soft);
-  border-radius: 50%;
-  animation: pulse 2s infinite;
-}
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
-}
-
-.notes-text {
-  font-size: 13px;
-  color: var(--ink-2);
-  line-height: 1.55;
-  padding: 12px 14px;
-  background: var(--surface-warm);
-  border-radius: var(--r-md);
-  border-left: 2px solid var(--warm);
-}
-
-/* Nearby places */
-.nearby-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  background: var(--hairline);
-  border: 1px solid var(--hairline);
-  border-radius: var(--r-md);
-  overflow: hidden;
-}
-.nearby-item {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 12px;
-  padding: 11px 14px;
-  background: var(--surface);
-  cursor: pointer;
-  transition: background 0.15s;
-}
-.nearby-item:hover { background: var(--surface-warm); }
-.nearby-item .n-name {
-  font-size: 13px;
-  color: var(--ink);
-  font-weight: 500;
-}
-.nearby-item .n-cat {
-  font-size: 11px;
-  color: var(--muted);
-  margin-top: 2px;
-}
-.nearby-item .n-meta {
-  text-align: right;
-}
-.nearby-item .n-dist {
-  font-family: var(--mono);
-  font-size: 11px;
-  color: var(--ink-2);
-}
-.nearby-item .n-rating {
-  font-size: 11px;
-  color: var(--warm);
-  margin-top: 2px;
-}
-
-.detail-foot {
-  padding: 12px 22px;
-  border-top: 1px solid var(--hairline);
-  display: flex;
-  gap: 8px;
-  background: var(--surface-warm);
-}
-
-.detail-foot .btn { flex: 1; justify-content: center; font-size: 12.5px; padding: 9px; }
-
-/* ========== MAP LEGEND ========== */
-.map-legend {
-  position: absolute;
-  bottom: 20px;
-  left: 20px;
-  background: var(--surface);
-  border: 1px solid var(--hairline);
-  border-radius: var(--r-md);
-  padding: 12px 14px;
-  z-index: 500;
-  box-shadow: var(--shadow-sm);
-  font-size: 11.5px;
-}
-.map-legend h4 {
-  font-family: var(--mono);
-  font-size: 9.5px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin-bottom: 8px;
-  font-weight: 500;
-}
-.map-legend ul { list-style: none; display: flex; flex-direction: column; gap: 4px; }
-.map-legend li { display: flex; align-items: center; gap: 8px; color: var(--ink-2); }
-.legend-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-/* ========== MODAL ========== */
-.modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(18, 18, 16, 0.35);
-  z-index: 2000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  backdrop-filter: blur(6px);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.25s;
-}
-.modal-backdrop.open {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-.modal {
-  background: var(--surface);
-  border-radius: var(--r-lg);
-  box-shadow: var(--shadow-lg);
-  width: 520px;
-  max-width: calc(100vw - 32px);
-  max-height: calc(100vh - 32px);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  transform: translateY(20px) scale(0.98);
-  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-.modal-backdrop.open .modal { transform: translateY(0) scale(1); }
-
-.modal-head {
-  padding: 22px 24px 16px;
-  border-bottom: 1px solid var(--hairline);
-}
-.modal-head h3 {
-  font-family: var(--serif);
-  font-weight: 400;
-  font-size: 22px;
-  letter-spacing: -0.015em;
-}
-.modal-head h3 em { font-style: italic; color: var(--accent); }
-
-.modal-body {
-  padding: 20px 24px;
-  overflow-y: auto;
-  flex: 1;
-}
-
-.type-picker {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 6px;
-  margin-bottom: 18px;
-}
-.type-btn {
-  padding: 12px 8px;
-  border-radius: var(--r-md);
-  border: 1px solid var(--hairline);
-  background: var(--surface);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  color: var(--muted);
-  font-size: 11px;
-  font-weight: 500;
-}
-.type-btn svg { width: 16px; height: 16px; stroke-width: 1.75; }
-.type-btn:hover { border-color: var(--ink-2); color: var(--ink); }
-.type-btn.active {
-  background: var(--ink);
-  border-color: var(--ink);
-  color: var(--bg);
-}
-
-.form-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-.form-field { display: flex; flex-direction: column; gap: 5px; }
-.form-field.full { grid-column: 1 / -1; }
-
-.form-field label {
-  font-family: var(--mono);
-  font-size: 9.5px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
-.form-field input,
-.form-field textarea,
-.form-field select {
-  padding: 9px 12px;
-  border: 1px solid var(--hairline-strong);
-  border-radius: var(--r-sm);
-  background: var(--surface);
-  font-size: 13px;
-  color: var(--ink);
-  outline: none;
-  transition: border-color 0.15s;
-  width: 100%;
-}
-.form-field textarea { resize: vertical; min-height: 60px; font-family: var(--kor); }
-.form-field input:focus,
-.form-field textarea:focus,
-.form-field select:focus { border-color: var(--ink); }
-
-.modal-foot {
-  padding: 14px 24px;
-  border-top: 1px solid var(--hairline);
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  background: var(--surface-warm);
-}
-
-/* ========== EMPTY STATE ========== */
-.empty-state {
-  text-align: center;
-  padding: 80px 32px;
-  color: var(--muted);
-}
-.empty-state p { margin-top: 8px; font-size: 13px; }
-
-/* ========== MOBILE ========== */
-@media (max-width: 900px) {
-  .main { grid-template-columns: 1fr; }
-  .sidebar { max-height: 50vh; border-right: none; border-bottom: 1px solid var(--hairline); }
-  .detail-overlay { width: calc(100vw - 40px); }
-  .trip-meta { position: static; transform: none; order: 2; margin-left: auto; margin-right: auto; }
-  .topbar { flex-wrap: wrap; gap: 8px; padding: 12px 16px; }
-}
-
-/* ========== UTILITIES ========== */
-.pill {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 8px;
-  border-radius: 99px;
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.06em;
-  background: var(--surface-warm);
-  border: 1px solid var(--hairline);
-  color: var(--ink-2);
-}
-
-.divider {
-  height: 1px;
-  background: var(--hairline);
-  margin: 14px 0;
-}
-
-/* subtle grain on bg for warmth */
-.app::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0.4;
-  z-index: 0;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='0.9' seed='5'/%3E%3CfeColorMatrix values='0 0 0 0 0.08 0 0 0 0 0.08 0 0 0 0 0.08 0 0 0 0.06 0'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
-  mix-blend-mode: multiply;
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#F5F2EA;--surface:#FFF;--surface-warm:#FBF8F0;
+  --ink:#121210;--ink-2:#3A3833;--muted:#817C72;--muted-2:#A8A39A;
+  --hairline:#E5E0D4;--hairline-strong:#D4CDB9;
+  --accent:#2A4A3A;--accent-soft:#3D6650;--warm:#C08552;--sky:#6B8CAE;
+  --serif:'Fraunces',serif;--mono:'JetBrains Mono',monospace;--kor:'Pretendard Variable','Geist',sans-serif;
+  --r-sm:6px;--r-md:10px;--r-lg:16px;--r-xl:24px;
+  --shadow-sm:0 2px 8px rgba(18,18,16,.06);--shadow-md:0 8px 32px rgba(18,18,16,.08);--shadow-lg:0 24px 64px rgba(18,18,16,.13);
+}
+html,body{height:100%;background:var(--bg);color:var(--ink);font-family:var(--kor);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;}
+button{font-family:inherit;font-size:inherit;cursor:pointer;border:none;background:none;color:inherit;transition:all .18s ease;}
+input,textarea,select{font-family:inherit;font-size:inherit;color:inherit;}
+
+/* SCREENS */
+.screen{position:fixed;inset:0;transition:opacity .28s,transform .28s cubic-bezier(.2,.8,.2,1);overflow:hidden;}
+.screen.hidden{opacity:0;pointer-events:none;transform:translateY(10px);}
+
+/* SHARED BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:var(--r-md);font-size:13px;font-weight:500;white-space:nowrap;}
+.btn svg{width:14px;height:14px;stroke-width:1.75;flex-shrink:0;}
+.btn-ghost{color:var(--ink-2);}.btn-ghost:hover{background:var(--hairline);color:var(--ink);}
+.btn-primary{background:var(--ink);color:var(--bg);}.btn-primary:hover{background:var(--accent);}
+.btn-outline{border:1px solid var(--hairline-strong);color:var(--ink-2);}.btn-outline:hover{border-color:var(--ink);color:var(--ink);}
+.btn-danger{color:#B8564F;border:1px solid var(--hairline-strong);}.btn-danger:hover{background:#B8564F;color:#fff;border-color:#B8564F;}
+
+/* MODALS */
+.modal-backdrop{position:fixed;inset:0;background:rgba(18,18,16,.36);z-index:9000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px);opacity:0;pointer-events:none;transition:opacity .24s;}
+.modal-backdrop.open{opacity:1;pointer-events:auto;}
+.modal{background:var(--surface);border-radius:var(--r-lg);box-shadow:var(--shadow-lg);width:520px;max-width:calc(100vw - 32px);max-height:calc(100vh - 48px);overflow:hidden;display:flex;flex-direction:column;transform:translateY(18px) scale(.98);transition:transform .3s cubic-bezier(.2,.8,.2,1);}
+.modal-backdrop.open .modal{transform:none;}
+.modal-head{padding:22px 24px 15px;border-bottom:1px solid var(--hairline);}
+.modal-head h3{font-family:var(--serif);font-weight:400;font-size:22px;letter-spacing:-.015em;}
+.modal-head h3 em{font-style:italic;color:var(--accent);}
+.modal-body{padding:20px 24px;overflow-y:auto;flex:1;}
+.modal-foot{padding:13px 24px;border-top:1px solid var(--hairline);display:flex;justify-content:flex-end;gap:8px;background:var(--surface-warm);}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+.form-field{display:flex;flex-direction:column;gap:5px;}
+.form-field.full{grid-column:1/-1;}
+.form-field label{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);}
+.form-field input,.form-field textarea,.form-field select{padding:9px 12px;border:1px solid var(--hairline-strong);border-radius:var(--r-sm);background:var(--surface);font-size:13px;outline:none;transition:border-color .15s;width:100%;}
+.form-field input:focus,.form-field textarea:focus{border-color:var(--ink);}
+.form-field textarea{resize:vertical;min-height:60px;}
+
+/* ====== HOME SCREEN ====== */
+#screen-home{background:var(--bg);overflow-y:auto;display:flex;flex-direction:column;}
+.home-header{padding:26px 48px 22px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--hairline);background:var(--bg);position:sticky;top:0;z-index:10;}
+.home-brand{font-family:var(--serif);font-style:italic;font-weight:400;font-size:28px;letter-spacing:-.02em;}
+.home-header-right{display:flex;gap:8px;}
+.home-body{flex:1;padding:48px;max-width:1400px;width:100%;margin:0 auto;}
+.home-greeting{margin-bottom:40px;}
+.home-greeting h2{font-family:var(--serif);font-weight:300;font-size:44px;letter-spacing:-.025em;line-height:1.1;}
+.home-greeting h2 em{font-style:italic;color:var(--accent);}
+.home-greeting p{margin-top:10px;color:var(--muted);font-size:15px;}
+.trips-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px;}
+
+/* Trip Cards */
+.trip-card{background:var(--surface);border:1px solid var(--hairline);border-radius:var(--r-xl);overflow:hidden;cursor:pointer;transition:all .2s ease;}
+.trip-card:hover{box-shadow:var(--shadow-md);transform:translateY(-3px);border-color:var(--hairline-strong);}
+.trip-card-banner{height:6px;}
+.banner-0{background:linear-gradient(90deg,#2A4A3A,#3D6650);}
+.banner-1{background:linear-gradient(90deg,#6B8CAE,#8AACC8);}
+.banner-2{background:linear-gradient(90deg,#C08552,#D4A574);}
+.banner-3{background:linear-gradient(90deg,#5C3A5F,#7A4F7E);}
+.banner-4{background:linear-gradient(90deg,#1E3A5F,#2D5280);}
+.banner-5{background:linear-gradient(90deg,#8B6914,#B08930);}
+.trip-card-body{padding:22px 24px 18px;}
+.trip-card-label{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;display:flex;align-items:center;gap:6px;}
+.shared-badge{background:rgba(107,140,174,.12);color:var(--sky);padding:2px 7px;border-radius:99px;font-size:9px;}
+.trip-card-title{font-family:var(--serif);font-size:24px;font-weight:400;letter-spacing:-.015em;line-height:1.2;margin-bottom:16px;}
+.trip-card-stats{display:flex;gap:20px;}
+.trip-stat .s-num{font-family:var(--serif);font-size:22px;font-weight:300;line-height:1;letter-spacing:-.02em;}
+.trip-stat .s-label{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-top:3px;}
+.trip-card-footer{display:flex;align-items:center;justify-content:space-between;padding:11px 24px;background:var(--surface-warm);border-top:1px solid var(--hairline);}
+.trip-card-date{font-family:var(--mono);font-size:10.5px;color:var(--muted);letter-spacing:.04em;}
+.card-actions{display:flex;gap:3px;}
+.card-actions button{width:28px;height:28px;border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;color:var(--muted);}
+.card-actions button:hover{background:var(--hairline);color:var(--ink);}
+.card-actions button svg{width:13px;height:13px;stroke-width:1.75;}
+.new-trip-card{border:1px dashed var(--hairline-strong);border-radius:var(--r-xl);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;cursor:pointer;color:var(--muted);min-height:200px;transition:all .2s;}
+.new-trip-card:hover{border-color:var(--ink);color:var(--ink);background:rgba(18,18,16,.02);}
+.new-trip-card svg{width:28px;height:28px;stroke-width:1.5;}
+.new-trip-card span{font-size:14px;font-weight:500;}
+
+/* ====== TRIP SCREEN ====== */
+#screen-trip{display:grid;grid-template-rows:auto 1fr;}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:15px 26px;background:var(--bg);border-bottom:1px solid var(--hairline);position:relative;z-index:10;gap:12px;}
+.topbar-left{display:flex;align-items:center;gap:10px;}
+.back-btn{display:flex;align-items:center;gap:5px;color:var(--muted);font-size:13px;padding:6px 10px;border-radius:var(--r-sm);}
+.back-btn:hover{background:var(--hairline);color:var(--ink);}
+.back-btn svg{width:14px;height:14px;stroke-width:2;}
+.brand-mark{font-family:var(--serif);font-style:italic;font-weight:400;font-size:22px;letter-spacing:-.02em;}
+.trip-meta{position:absolute;left:50%;transform:translateX(-50%);text-align:center;pointer-events:none;}
+.trip-title-el{font-family:var(--serif);font-weight:400;font-size:17px;letter-spacing:-.01em;}
+.trip-sub-el{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-top:2px;}
+.topbar-right{display:flex;gap:6px;}
+
+/* PLANNER */
+.planner{display:grid;grid-template-columns:420px 1fr;height:100%;overflow:hidden;}
+.sidebar{background:var(--surface-warm);border-right:1px solid var(--hairline);display:flex;flex-direction:column;overflow:hidden;}
+.days-rail{display:flex;gap:6px;padding:13px 17px;border-bottom:1px solid var(--hairline);overflow-x:auto;scrollbar-width:none;align-items:center;}
+.days-rail::-webkit-scrollbar{display:none;}
+.day-chip{display:flex;flex-direction:column;align-items:flex-start;padding:9px 12px;border-radius:var(--r-md);border:1px solid transparent;flex-shrink:0;min-width:64px;}
+.day-chip:hover{background:var(--hairline);}
+.day-chip.active{background:var(--ink);color:var(--bg);}
+.day-chip .d-num{font-family:var(--serif);font-size:18px;font-weight:400;line-height:1;letter-spacing:-.02em;}
+.day-chip .d-label{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;opacity:.7;margin-top:3px;}
+.add-day-chip{width:34px;height:34px;border-radius:var(--r-md);border:1px dashed var(--hairline-strong);display:flex;align-items:center;justify-content:center;color:var(--muted);flex-shrink:0;}
+.add-day-chip:hover{border-color:var(--ink);color:var(--ink);border-style:solid;}
+.add-day-chip svg{width:13px;height:13px;stroke-width:2;}
+.day-header{padding:20px 25px 10px;}
+.day-header h2{font-family:var(--serif);font-weight:300;font-size:25px;letter-spacing:-.02em;line-height:1.15;}
+.day-header h2 em{font-style:italic;color:var(--accent);}
+.day-header .subtitle{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-top:5px;display:flex;align-items:center;gap:10px;}
+.remove-day-btn{color:var(--muted);font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;border:1px solid var(--hairline-strong);padding:2px 7px;border-radius:4px;}
+.remove-day-btn:hover{color:#B8564F;border-color:#B8564F;}
+.timeline{flex:1;overflow-y:auto;padding:6px 25px 120px;}
+.timeline::-webkit-scrollbar{width:5px;}
+.timeline::-webkit-scrollbar-thumb{background:var(--hairline-strong);border-radius:10px;}
+.event{display:grid;grid-template-columns:56px 1fr;gap:12px;position:relative;padding:11px 0;cursor:pointer;animation:fadeUp .35s ease backwards;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.event:nth-child(1){animation-delay:.04s}.event:nth-child(2){animation-delay:.08s}.event:nth-child(3){animation-delay:.12s}.event:nth-child(4){animation-delay:.16s}.event:nth-child(5){animation-delay:.2s}.event:nth-child(6){animation-delay:.24s}
+.event::before{content:'';position:absolute;left:61px;top:28px;bottom:-11px;width:1px;background:var(--hairline-strong);}
+.event:last-of-type::before{display:none;}
+.event-time{font-family:var(--mono);font-size:11px;font-weight:500;color:var(--ink-2);letter-spacing:.02em;padding-top:5px;}
+.event-time .t-end{display:block;color:var(--muted-2);font-size:10px;margin-top:2px;}
+.event-body{position:relative;}
+.event-dot{position:absolute;left:-12px;top:15px;width:9px;height:9px;border-radius:50%;background:var(--surface);border:2px solid var(--muted);z-index:1;transition:transform .2s;}
+.event.t-flight .event-dot{border-color:var(--sky)}.event.t-transit .event-dot{border-color:var(--warm)}.event.t-lodging .event-dot{border-color:var(--accent);background:var(--accent)}.event.t-activity .event-dot{border-color:var(--ink-2)}.event.t-food .event-dot{border-color:#B8564F}
+.event.selected .event-dot{transform:scale(1.4);background:var(--ink);border-color:var(--ink);}
+.event-card{background:var(--surface);border:1px solid var(--hairline);border-radius:var(--r-md);padding:11px 13px;transition:all .15s ease;}
+.event:hover .event-card,.event.selected .event-card{border-color:var(--ink);box-shadow:var(--shadow-sm);transform:translateX(2px);}
+.event-type{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:5px;}
+.event-type svg{width:11px;height:11px;stroke-width:2;}
+.event-type.t-flight{color:var(--sky)}.event-type.t-transit{color:var(--warm)}.event-type.t-lodging{color:var(--accent)}.event-type.t-food{color:#B8564F}
+.event-title{font-size:14px;font-weight:500;color:var(--ink);letter-spacing:-.005em;line-height:1.3;}
+.event-meta{display:flex;gap:8px;flex-wrap:wrap;font-size:11.5px;color:var(--muted);margin-top:5px;}
+.event-meta .chip{padding:1px 6px;background:var(--surface-warm);border:1px solid var(--hairline);border-radius:3px;font-family:var(--mono);font-size:10px;color:var(--ink-2);}
+.add-event-btn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:13px;margin-top:6px;border:1px dashed var(--hairline-strong);border-radius:var(--r-md);color:var(--muted);font-size:13px;}
+.add-event-btn:hover{border-color:var(--ink);color:var(--ink);border-style:solid;}
+.empty-day{text-align:center;padding:48px 24px;color:var(--muted);}
+.empty-day p{font-size:13px;margin-top:6px;}
+
+/* MAP */
+.map-panel{position:relative;overflow:hidden;background:#EEE8DA;}
+#map{position:absolute;inset:0;z-index:1;}
+.marker-pin{width:30px;height:30px;border-radius:50% 50% 50% 0;border:2px solid #fff;transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-md);cursor:pointer;}
+.marker-pin span{transform:rotate(45deg);color:#fff;font-family:var(--mono);font-size:11px;font-weight:500;}
+.marker-pin.active{transform:rotate(-45deg) scale(1.15);}
+.key-overlay{position:absolute;inset:0;z-index:500;display:flex;align-items:center;justify-content:center;padding:40px;background:linear-gradient(135deg,#E8E4DA,#D4CDB9);}
+.key-overlay.hidden{display:none;}
+.key-card{max-width:440px;width:100%;background:var(--surface);border:1px solid var(--hairline);border-radius:var(--r-lg);padding:28px 30px;box-shadow:var(--shadow-lg);}
+.key-card .badge{display:inline-block;font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);background:rgba(42,74,58,.08);padding:3px 8px;border-radius:4px;margin-bottom:12px;}
+.key-card h3{font-family:var(--serif);font-weight:400;font-size:22px;letter-spacing:-.02em;line-height:1.2;margin-bottom:8px;}
+.key-card h3 em{font-style:italic;color:var(--accent);}
+.key-card p{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:16px;}
+.key-steps{background:var(--surface-warm);border:1px solid var(--hairline);border-radius:var(--r-md);padding:12px 14px;margin-bottom:16px;}
+.key-steps ol{list-style:none;counter-reset:step;font-size:12.5px;color:var(--ink-2);line-height:1.7;}
+.key-steps li{counter-increment:step;padding-left:24px;position:relative;}
+.key-steps li::before{content:counter(step);position:absolute;left:0;top:3px;width:17px;height:17px;background:var(--ink);color:var(--bg);border-radius:50%;font-family:var(--mono);font-size:10px;display:flex;align-items:center;justify-content:center;}
+.key-steps a{color:var(--accent);text-decoration:underline;text-underline-offset:2px;}
+.key-input-row{display:flex;gap:8px;margin-bottom:8px;}
+.key-input-row input{flex:1;padding:9px 12px;border:1px solid var(--hairline-strong);border-radius:var(--r-sm);font-family:var(--mono);font-size:12px;outline:none;}
+.key-input-row input:focus{border-color:var(--ink);}
+.key-hint{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.04em;}
+.key-skip{display:inline-block;margin-top:12px;color:var(--muted);font-size:12px;text-decoration:underline;text-underline-offset:3px;cursor:pointer;}
+.key-skip:hover{color:var(--ink);}
+.detail-overlay{position:absolute;top:18px;right:18px;width:330px;max-height:calc(100vh - 170px);background:var(--surface);border:1px solid var(--hairline);border-radius:var(--r-lg);box-shadow:var(--shadow-lg);z-index:1000;overflow:hidden;display:flex;flex-direction:column;transform-origin:top right;transition:transform .25s cubic-bezier(.2,.8,.2,1),opacity .2s;}
+.detail-overlay.hidden{transform:scale(.95);opacity:0;pointer-events:none;}
+.detail-head{padding:17px 19px 12px;border-bottom:1px solid var(--hairline);position:relative;}
+.detail-close{position:absolute;top:11px;right:11px;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--muted);}
+.detail-close:hover{background:var(--hairline);color:var(--ink);}
+.detail-close svg{width:13px;height:13px;stroke-width:2;}
+.detail-type-label{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:3px;}
+.detail-title{font-family:var(--serif);font-size:19px;font-weight:400;letter-spacing:-.015em;line-height:1.2;color:var(--ink);padding-right:26px;}
+.detail-title em{font-style:italic;color:var(--accent);}
+.detail-body{padding:15px 19px;overflow-y:auto;flex:1;}
+.detail-section{margin-bottom:15px;}.detail-section:last-child{margin-bottom:0;}
+.detail-label{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:7px;}
+.flight-route{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center;padding:12px;background:var(--surface-warm);border-radius:var(--r-md);border:1px solid var(--hairline);margin-bottom:12px;}
+.flight-port{text-align:center;}
+.flight-port .code{font-family:var(--serif);font-size:24px;font-weight:400;letter-spacing:-.02em;line-height:1;}
+.flight-port .name{font-size:10px;color:var(--muted);margin-top:3px;line-height:1.3;}
+.flight-port .time{font-family:var(--mono);font-size:12px;font-weight:500;margin-top:5px;}
+.flight-arrow{color:var(--muted-2);display:flex;flex-direction:column;align-items:center;}
+.flight-arrow .dur{font-family:var(--mono);font-size:9px;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;margin-top:2px;}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--hairline);border:1px solid var(--hairline);border-radius:var(--r-md);overflow:hidden;}
+.info-cell{background:var(--surface);padding:9px 11px;}
+.info-cell .k{font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-bottom:2px;}
+.info-cell .v{font-size:13px;color:var(--ink);font-weight:500;}
+.info-cell .v.mono{font-family:var(--mono);}
+.gate-hi{background:var(--ink);}.gate-hi .k{color:var(--muted-2);}.gate-hi .v{color:var(--bg);}
+.status-dot{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent-soft);margin-top:8px;}
+.status-dot::before{content:'';width:5px;height:5px;background:var(--accent-soft);border-radius:50%;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.notes-text{font-size:13px;color:var(--ink-2);line-height:1.55;padding:10px 12px;background:var(--surface-warm);border-radius:var(--r-md);border-left:2px solid var(--warm);}
+.detail-foot{padding:10px 19px;border-top:1px solid var(--hairline);display:flex;gap:6px;background:var(--surface-warm);}
+.detail-foot .btn{flex:1;justify-content:center;font-size:12px;padding:8px;}
+.map-legend{position:absolute;bottom:18px;left:18px;background:var(--surface);border:1px solid var(--hairline);border-radius:var(--r-md);padding:10px 13px;z-index:500;box-shadow:var(--shadow-sm);}
+.map-legend h4{font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:7px;font-weight:500;}
+.map-legend ul{list-style:none;display:flex;flex-direction:column;gap:4px;}
+.map-legend li{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--ink-2);}
+.legend-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+
+/* EVENT FORM */
+.type-picker{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:18px;}
+.type-btn{padding:11px 6px;border-radius:var(--r-md);border:1px solid var(--hairline);background:var(--surface);display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--muted);font-size:11px;font-weight:500;}
+.type-btn svg{width:15px;height:15px;stroke-width:1.75;}
+.type-btn:hover{border-color:var(--ink-2);color:var(--ink);}
+.type-btn.active{background:var(--ink);border-color:var(--ink);color:var(--bg);}
+
+/* SHARE MODAL */
+.share-link-box{display:flex;gap:8px;margin:14px 0;}
+.share-link-box input{flex:1;padding:10px 12px;border:1px solid var(--hairline-strong);border-radius:var(--r-sm);font-family:var(--mono);font-size:11px;color:var(--muted);background:var(--surface-warm);outline:none;}
+.share-info{font-size:13px;color:var(--muted);line-height:1.6;padding:12px 14px;background:var(--surface-warm);border-radius:var(--r-md);border:1px solid var(--hairline);}
+.copy-ok{color:var(--accent);font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;display:none;margin-bottom:8px;}
+.copy-ok.show{display:block;}
+
+/* INVITE MODAL */
+.invite-banner{background:linear-gradient(135deg,var(--accent),var(--accent-soft));color:#fff;border-radius:var(--r-md);padding:20px;margin-bottom:18px;}
+.invite-banner .ib-label{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;opacity:.7;margin-bottom:6px;}
+.invite-banner .ib-title{font-family:var(--serif);font-size:22px;font-weight:400;letter-spacing:-.015em;line-height:1.2;}
+.invite-banner .ib-meta{font-family:var(--mono);font-size:10.5px;opacity:.75;margin-top:6px;letter-spacing:.06em;}
+.invite-desc{font-size:13px;color:var(--muted);line-height:1.65;}
+
+@media(max-width:900px){
+  .planner{grid-template-columns:1fr;}
+  .map-panel{display:none;}
+  .home-body{padding:24px;}
+  .home-greeting h2{font-size:32px;}
+  .trips-grid{grid-template-columns:1fr;}
+  .trip-meta{display:none;}
 }
 </style>
 </head>
 <body>
 
-<div class="app">
-  <!-- ========== TOPBAR ========== -->
-  <header class="topbar">
-    <div class="brand">
-      <span class="brand-mark">Wayfarer</span>
-      <span class="brand-tag">EST · 2026</span>
-    </div>
-    <div class="trip-meta">
-      <div class="trip-title" id="trip-title-display">도쿄, <em>다섯 밤의 산책</em></div>
-      <div class="trip-sub" id="trip-sub-display">MAY 15 — MAY 18, 2026 · 2 TRAVELERS</div>
-    </div>
-    <div class="topbar-actions">
-      <button class="btn btn-ghost" onclick="openTripEdit()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-        편집
+<!-- HOME -->
+<div class="screen" id="screen-home">
+  <header class="home-header">
+    <div class="home-brand">Wayfarer</div>
+    <div class="home-header-right">
+      <button class="btn btn-outline" onclick="openInviteInput()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+        초대 링크 열기
       </button>
-      <button class="btn btn-outline" onclick="exportTrip()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        내보내기
-      </button>
-      <button class="btn btn-primary" onclick="openAddEvent()">
+      <button class="btn btn-primary" onclick="openNewTripModal()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        일정 추가
+        새 여행 추가
       </button>
     </div>
   </header>
+  <div class="home-body">
+    <div class="home-greeting">
+      <h2>어디로 <em>떠날까요?</em></h2>
+      <p>여행을 만들고, 일정을 계획하고, 링크로 함께 여행을 완성해 보세요.</p>
+    </div>
+    <div class="trips-grid" id="trips-grid"></div>
+  </div>
+</div>
 
-  <!-- ========== MAIN ========== -->
-  <main class="main">
-    <!-- SIDEBAR -->
+<!-- TRIP -->
+<div class="screen hidden" id="screen-trip">
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="back-btn" onclick="goHome()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        내 여행
+      </button>
+      <span class="brand-mark">Wayfarer</span>
+    </div>
+    <div class="trip-meta">
+      <div class="trip-title-el" id="trip-title-el"></div>
+      <div class="trip-sub-el" id="trip-sub-el"></div>
+    </div>
+    <div class="topbar-right">
+      <button class="btn btn-ghost" onclick="openTripEdit()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>편집
+      </button>
+      <button class="btn btn-outline" onclick="openShareModal()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>공유
+      </button>
+      <button class="btn btn-primary" onclick="openAddEvent()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>일정 추가
+      </button>
+    </div>
+  </header>
+  <div class="planner">
     <aside class="sidebar">
       <div class="days-rail" id="days-rail"></div>
       <div class="day-header" id="day-header"></div>
       <div class="timeline" id="timeline"></div>
     </aside>
-
-    <!-- MAP PANEL -->
     <section class="map-panel">
       <div id="map"></div>
-
-      <!-- Naver Maps API key input overlay -->
       <div class="key-overlay" id="key-overlay">
         <div class="key-card">
           <span class="badge">NAVER MAPS API</span>
           <h3>네이버 지도 <em>클라이언트 ID</em>가 필요해요</h3>
-          <p>네이버 지도 API는 네이버 클라우드 플랫폼에서 발급받은 키와, 사용할 도메인 등록이 필요합니다. 무료 한도(월 1,000만 호출)로 충분히 사용할 수 있어요.</p>
-          <div class="key-steps">
-            <ol>
-              <li><a href="https://www.ncloud.com/" target="_blank">네이버 클라우드 플랫폼</a> 가입 · 로그인</li>
-              <li>Console → Services → Maps → Application 등록</li>
-              <li><strong>Web Dynamic Map</strong> 체크, 사용할 도메인 추가</li>
-              <li>발급된 <strong>Client ID</strong>(= Key ID)를 아래에 입력</li>
-            </ol>
-          </div>
+          <p>네이버 클라우드 플랫폼에서 발급받은 키와 사용할 도메인 등록이 필요합니다.</p>
+          <div class="key-steps"><ol>
+            <li><a href="https://www.ncloud.com/" target="_blank">네이버 클라우드 플랫폼</a> 가입·로그인</li>
+            <li>Console → Services → Maps → Application 등록</li>
+            <li><strong>Web Dynamic Map</strong> 체크, 사용할 도메인 추가</li>
+            <li>발급된 <strong>Client ID</strong>를 아래에 입력</li>
+          </ol></div>
           <div class="key-input-row">
-            <input type="text" id="naver-key-input" placeholder="예: abcdefg1234567hijklmn" autocomplete="off" spellcheck="false">
-            <button class="btn btn-primary" onclick="applyNaverKey()">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-              적용
-            </button>
+            <input type="text" id="naver-key-input" placeholder="Client ID 입력" autocomplete="off" spellcheck="false">
+            <button class="btn btn-primary" onclick="applyNaverKey()">적용</button>
           </div>
-          <div class="key-hint">키는 이 페이지에만 사용되고 저장되지 않아요.</div>
-          <a class="key-skip" onclick="skipNaverKey()">키 없이 일정 기능만 사용하기 →</a>
+          <div class="key-hint">키는 이 페이지에서만 사용됩니다.</div>
+          <span class="key-skip" onclick="skipNaverKey()">키 없이 일정 기능만 사용하기 →</span>
         </div>
       </div>
-
-      <!-- Detail overlay -->
       <div class="detail-overlay hidden" id="detail-overlay">
         <div class="detail-head">
-          <div class="detail-type-label" id="d-type">—</div>
-          <div class="detail-title" id="d-title">—</div>
-          <button class="detail-close" onclick="closeDetail()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
+          <div class="detail-type-label" id="d-type"></div>
+          <div class="detail-title" id="d-title"></div>
+          <button class="detail-close" onclick="closeDetail()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
         </div>
         <div class="detail-body" id="d-body"></div>
         <div class="detail-foot">
-          <button class="btn btn-outline" onclick="editCurrentEvent()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-            수정
-          </button>
-          <button class="btn btn-outline" onclick="deleteCurrentEvent()" style="color:#B8564F;">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
-            삭제
-          </button>
+          <button class="btn btn-outline" onclick="editCurrentEvent()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>수정</button>
+          <button class="btn btn-danger" onclick="deleteCurrentEvent()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/></svg>삭제</button>
         </div>
       </div>
-
-      <!-- Legend -->
       <div class="map-legend">
         <h4>범례</h4>
         <ul>
-          <li><span class="legend-dot" style="background:#6B8CAE"></span> 항공편</li>
-          <li><span class="legend-dot" style="background:#C08552"></span> 교통편</li>
-          <li><span class="legend-dot" style="background:#2A4A3A"></span> 숙소</li>
-          <li><span class="legend-dot" style="background:#3A3833"></span> 방문지</li>
-          <li><span class="legend-dot" style="background:#B8564F"></span> 식사</li>
+          <li><span class="legend-dot" style="background:#6B8CAE"></span>항공편</li>
+          <li><span class="legend-dot" style="background:#C08552"></span>교통편</li>
+          <li><span class="legend-dot" style="background:#2A4A3A"></span>숙소</li>
+          <li><span class="legend-dot" style="background:#3A3833"></span>방문지</li>
+          <li><span class="legend-dot" style="background:#B8564F"></span>식사</li>
         </ul>
       </div>
     </section>
-  </main>
+  </div>
 </div>
 
-<!-- ========== MODAL ========== -->
-<div class="modal-backdrop" id="modal-backdrop" onclick="if(event.target===this)closeModal()">
+<!-- MODAL: 새 여행 -->
+<div class="modal-backdrop" id="modal-new-trip" onclick="if(event.target===this)closeModal('modal-new-trip')">
   <div class="modal">
-    <div class="modal-head">
-      <h3 id="modal-title">일정 <em>추가</em></h3>
-    </div>
+    <div class="modal-head"><h3>새 여행 <em>만들기</em></h3></div>
     <div class="modal-body">
-      <div class="type-picker" id="type-picker">
-        <button class="type-btn" data-type="flight">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg>
-          항공
-        </button>
-        <button class="type-btn" data-type="transit">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="16" rx="2"/><path d="M4 11h16"/><path d="M8 15h.01M16 15h.01"/><path d="M8 19l-2 3M16 19l2 3"/></svg>
-          교통
-        </button>
-        <button class="type-btn" data-type="lodging">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22h18"/><path d="M5 22V6l7-3 7 3v16"/><path d="M9 22v-7h6v7"/></svg>
-          숙소
-        </button>
-        <button class="type-btn active" data-type="activity">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 0-8 8c0 6 8 12 8 12s8-6 8-12a8 8 0 0 0-8-8z"/></svg>
-          방문
-        </button>
-        <button class="type-btn" data-type="food">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11h18M5 11V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v6M5 11v10h14V11"/></svg>
-          식사
-        </button>
-      </div>
-
+      <div class="form-row"><div class="form-field full"><label>여행 이름</label><input type="text" id="nt-title" placeholder="예: 제주도 봄 여행"></div></div>
+      <div class="form-row"><div class="form-field full"><label>여행지 / 부제</label><input type="text" id="nt-sub" placeholder="예: Jeju Island, Korea"></div></div>
       <div class="form-row">
-        <div class="form-field full">
-          <label>제목</label>
-          <input type="text" id="f-title" placeholder="예: 센소지 방문">
-        </div>
+        <div class="form-field"><label>출발일</label><input type="date" id="nt-start"></div>
+        <div class="form-field"><label>귀국일</label><input type="date" id="nt-end"></div>
       </div>
-
       <div class="form-row">
-        <div class="form-field">
-          <label>시작 시간</label>
-          <input type="time" id="f-time">
-        </div>
-        <div class="form-field">
-          <label>종료 시간</label>
-          <input type="time" id="f-endtime">
-        </div>
-      </div>
-
-      <!-- Flight-specific fields -->
-      <div id="f-flight-fields" style="display:none;">
-        <div class="form-row">
-          <div class="form-field">
-            <label>항공사</label>
-            <input type="text" id="f-airline" placeholder="대한항공">
-          </div>
-          <div class="form-field">
-            <label>편명</label>
-            <input type="text" id="f-flightno" placeholder="KE703">
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-field">
-            <label>출발 공항 (IATA)</label>
-            <input type="text" id="f-from" placeholder="ICN" maxlength="3">
-          </div>
-          <div class="form-field">
-            <label>도착 공항 (IATA)</label>
-            <input type="text" id="f-to" placeholder="NRT" maxlength="3">
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-field">
-            <label>터미널</label>
-            <input type="text" id="f-terminal" placeholder="2">
-          </div>
-          <div class="form-field">
-            <label>게이트</label>
-            <input type="text" id="f-gate" placeholder="231">
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-field">
-            <label>좌석</label>
-            <input type="text" id="f-seat" placeholder="24A, 24B">
-          </div>
-          <div class="form-field">
-            <label>예약번호</label>
-            <input type="text" id="f-booking" placeholder="ABC123">
-          </div>
-        </div>
-      </div>
-
-      <!-- Generic location fields -->
-      <div id="f-location-fields">
-        <div class="form-row">
-          <div class="form-field full">
-            <label>장소명 / 주소</label>
-            <input type="text" id="f-locname" placeholder="센소지 (浅草寺)">
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-field">
-            <label>위도</label>
-            <input type="text" id="f-lat" placeholder="35.7148">
-          </div>
-          <div class="form-field">
-            <label>경도</label>
-            <input type="text" id="f-lng" placeholder="139.7967">
-          </div>
-        </div>
-      </div>
-
-      <div class="form-row">
-        <div class="form-field full">
-          <label>메모</label>
-          <textarea id="f-notes" placeholder="예약 확인, 참고 사항 등"></textarea>
-        </div>
+        <div class="form-field"><label>여행 인원</label><input type="number" id="nt-travelers" value="2" min="1" max="20"></div>
+        <div class="form-field"><label>기본 일수</label><input type="number" id="nt-days" value="3" min="1" max="30"></div>
       </div>
     </div>
     <div class="modal-foot">
-      <button class="btn btn-ghost" onclick="closeModal()">취소</button>
+      <button class="btn btn-ghost" onclick="closeModal('modal-new-trip')">취소</button>
+      <button class="btn btn-primary" onclick="createTrip()">만들기</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: 일정 추가/수정 -->
+<div class="modal-backdrop" id="modal-event" onclick="if(event.target===this)closeModal('modal-event')">
+  <div class="modal">
+    <div class="modal-head"><h3 id="event-modal-title">일정 <em>추가</em></h3></div>
+    <div class="modal-body">
+      <div class="type-picker" id="type-picker">
+        <button class="type-btn" data-type="flight"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg>항공</button>
+        <button class="type-btn" data-type="transit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="16" rx="2"/><path d="M4 11h16"/><circle cx="8" cy="15" r="1"/><circle cx="16" cy="15" r="1"/></svg>교통</button>
+        <button class="type-btn" data-type="lodging"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22h18"/><path d="M5 22V6l7-3 7 3v16"/><path d="M9 22v-7h6v7"/></svg>숙소</button>
+        <button class="type-btn active" data-type="activity"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 0-8 8c0 6 8 12 8 12s8-6 8-12a8 8 0 0 0-8-8z"/></svg>방문</button>
+        <button class="type-btn" data-type="food"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11h18M5 11V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v6M5 11v10h14V11"/></svg>식사</button>
+      </div>
+      <div class="form-row"><div class="form-field full"><label>제목</label><input type="text" id="f-title" placeholder="예: 센소지 방문"></div></div>
+      <div class="form-row">
+        <div class="form-field"><label>시작 시간</label><input type="time" id="f-time"></div>
+        <div class="form-field"><label>종료 시간</label><input type="time" id="f-endtime"></div>
+      </div>
+      <div id="f-flight-fields" style="display:none">
+        <div class="form-row">
+          <div class="form-field"><label>항공사</label><input type="text" id="f-airline" placeholder="대한항공"></div>
+          <div class="form-field"><label>편명</label><input type="text" id="f-flightno" placeholder="KE703"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-field"><label>출발 (IATA)</label><input type="text" id="f-from" placeholder="ICN" maxlength="3"></div>
+          <div class="form-field"><label>도착 (IATA)</label><input type="text" id="f-to" placeholder="NRT" maxlength="3"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-field"><label>터미널</label><input type="text" id="f-terminal" placeholder="2"></div>
+          <div class="form-field"><label>게이트</label><input type="text" id="f-gate" placeholder="231"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-field"><label>좌석</label><input type="text" id="f-seat" placeholder="24A, 24B"></div>
+          <div class="form-field"><label>예약번호</label><input type="text" id="f-booking" placeholder="ABC123"></div>
+        </div>
+      </div>
+      <div id="f-location-fields">
+        <div class="form-row"><div class="form-field full"><label>장소명</label><input type="text" id="f-locname" placeholder="예: 경복궁"></div></div>
+        <div class="form-row">
+          <div class="form-field"><label>위도</label><input type="text" id="f-lat" placeholder="37.5796"></div>
+          <div class="form-field"><label>경도</label><input type="text" id="f-lng" placeholder="126.9770"></div>
+        </div>
+      </div>
+      <div class="form-row"><div class="form-field full"><label>메모</label><textarea id="f-notes" placeholder="예약 확인, 주의사항 등"></textarea></div></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('modal-event')">취소</button>
       <button class="btn btn-primary" onclick="saveEvent()">저장</button>
     </div>
   </div>
 </div>
 
-<script>
-// ==================== DATA ====================
-const TRIP = {
-  title: '도쿄, 다섯 밤의 산책',
-  subtitle: 'MAY 15 — MAY 18, 2026 · 2 TRAVELERS',
-  days: [
-    {
-      label: '도착 & 신주쿠',
-      date: '5월 15일 목',
-      center: [35.6862, 139.6905],
-      events: [
-        {
-          id: 'e101', type: 'flight', time: '09:00', endTime: '11:30',
-          title: 'KE703 · ICN → NRT',
-          flight: {
-            airline: '대한항공', flightNumber: 'KE703',
-            from: { code: 'ICN', name: '인천국제공항', terminal: '2', gate: '231', time: '09:00' },
-            to: { code: 'NRT', name: '나리타 국제공항', terminal: '1', time: '11:30' },
-            duration: '2시간 30분', seat: '24A, 24B', booking: 'ABCD1234', status: '정시 출발 예정'
-          }
-        },
-        {
-          id: 'e102', type: 'transit', time: '12:30', endTime: '14:00',
-          title: '나리타 익스프레스 → 신주쿠',
-          notes: 'N\'EX 15호 · 15번 승강장 · 지정석 3호차 7A·7B'
-        },
-        {
-          id: 'e103', type: 'lodging', time: '15:00',
-          title: 'Park Hyatt Tokyo 체크인',
-          location: { lat: 35.6862, lng: 139.6905, name: 'Park Hyatt Tokyo', address: '3-7-1-2 Nishishinjuku, Shinjuku' },
-          notes: 'Deluxe King · 41층 · 예약번호 PH-2026-0515. 오후 3시 체크인, 마지막 날 11시 체크아웃.'
-        },
-        {
-          id: 'e104', type: 'activity', time: '18:00', endTime: '19:30',
-          title: '신주쿠 교엔 산책',
-          location: { lat: 35.6852, lng: 139.7100, name: '신주쿠 교엔 국립정원', address: '11 Naitōmachi, Shinjuku' },
-          notes: '일몰 시간에 맞춰 도착. 마지막 입장 오후 4시 30분이므로 주의.'
-        },
-        {
-          id: 'e105', type: 'food', time: '20:00', endTime: '22:00',
-          title: '토리 시노 · 꼬치구이',
-          location: { lat: 35.6938, lng: 139.7036, name: '토리 시노 (鳥しの)', address: 'Omoide Yokocho, Shinjuku' },
-          notes: '예약 완료 · 2인 · 오마카세 코스. 현금만 가능.'
-        }
-      ]
-    },
-    {
-      label: '아사쿠사 & 동쪽',
-      date: '5월 16일 금',
-      center: [35.7148, 139.7967],
-      events: [
-        {
-          id: 'e201', type: 'food', time: '08:00', endTime: '09:00',
-          title: '호텔 조식 · Kozue',
-          location: { lat: 35.6862, lng: 139.6905, name: 'Park Hyatt Tokyo' },
-          notes: '40층 · 일식 조식 세트'
-        },
-        {
-          id: 'e202', type: 'transit', time: '09:30', endTime: '10:15',
-          title: '지하철 · 신주쿠 → 아사쿠사',
-          notes: '마루노우치선 → 긴자선 환승 · IC 카드 사용'
-        },
-        {
-          id: 'e203', type: 'activity', time: '10:30', endTime: '12:30',
-          title: '센소지 · 나카미세 거리',
-          location: { lat: 35.7148, lng: 139.7967, name: '센소지 (浅草寺)', address: '2-3-1 Asakusa, Taito City' },
-          notes: '가미나리몬 → 나카미세 상점가 → 본당 → 5중탑. 인형 만두 맛보기!'
-        },
-        {
-          id: 'e204', type: 'food', time: '13:00', endTime: '14:00',
-          title: '다이코쿠야 텐동',
-          location: { lat: 35.7134, lng: 139.7949, name: '다이코쿠야 (大黒家天麩羅)' },
-          notes: '1887년부터. 에비 텐동 추천. 대기 30분 예상.'
-        },
-        {
-          id: 'e205', type: 'activity', time: '15:00', endTime: '17:30',
-          title: 'teamLab Planets',
-          location: { lat: 35.6491, lng: 139.7898, name: 'teamLab Planets TOKYO' },
-          notes: '티켓 예약 완료 (15:30 입장). 짧은 바지 권장 · 물 구간 있음.'
-        },
-        {
-          id: 'e206', type: 'food', time: '19:30', endTime: '21:30',
-          title: '우오신 · 카이세키',
-          notes: '긴자 본점 · 2인 코스 예약 · 오후 7시 30분'
-        }
-      ]
-    },
-    {
-      label: '시부야 & 하라주쿠',
-      date: '5월 17일 토',
-      center: [35.6696, 139.7000],
-      events: [
-        {
-          id: 'e301', type: 'activity', time: '10:00', endTime: '11:30',
-          title: '메이지 신궁',
-          location: { lat: 35.6764, lng: 139.6993, name: '메이지 진구 (明治神宮)' },
-          notes: '도심 속 숲. 이른 시간이 조용함.'
-        },
-        {
-          id: 'e302', type: 'activity', time: '12:00', endTime: '14:00',
-          title: '하라주쿠 & 오모테산도',
-          location: { lat: 35.6702, lng: 139.7028, name: '오모테산도' },
-          notes: '타케시타도리 → 오모테산도. 에잇이스 아이스크림, 루크스 크레페.'
-        },
-        {
-          id: 'e303', type: 'food', time: '14:30', endTime: '15:30',
-          title: '블루보틀 · 아오야마',
-          location: { lat: 35.6651, lng: 139.7128, name: '블루보틀 아오야마' }
-        },
-        {
-          id: 'e304', type: 'activity', time: '17:00', endTime: '19:00',
-          title: '시부야 스크램블 크로싱',
-          location: { lat: 35.6595, lng: 139.7005, name: '시부야 스크램블 크로싱' },
-          notes: '스타벅스 츠타야점 2층 창가 자리. 해질 무렵 가장 아름다움.'
-        },
-        {
-          id: 'e305', type: 'food', time: '20:00', endTime: '22:00',
-          title: '이치란 라멘 · 시부야 본점',
-          location: { lat: 35.6597, lng: 139.6993, name: '이치란 라멘' },
-          notes: '1인 부스. 키오스크 주문. 면 단단하게, 국물 보통.'
-        }
-      ]
-    },
-    {
-      label: '마지막 날 & 귀국',
-      date: '5월 18일 일',
-      center: [35.7720, 140.3929],
-      events: [
-        {
-          id: 'e401', type: 'lodging', time: '10:30',
-          title: 'Park Hyatt 체크아웃',
-          location: { lat: 35.6862, lng: 139.6905, name: 'Park Hyatt Tokyo' },
-          notes: '짐은 프론트 보관. 공항 출발까지 시간 있음.'
-        },
-        {
-          id: 'e402', type: 'food', time: '11:30', endTime: '13:00',
-          title: '스시 사이토 (점심 오마카세)',
-          notes: '록폰기 본점 · 6개월 전 예약 완료. 정각 도착 필수.'
-        },
-        {
-          id: 'e403', type: 'transit', time: '14:30', endTime: '16:00',
-          title: '나리타 익스프레스 → 공항',
-          notes: 'N\'EX 34호 · 신주쿠역 남쪽 출구 5번 승강장'
-        },
-        {
-          id: 'e404', type: 'flight', time: '18:30', endTime: '21:00',
-          title: 'KE706 · NRT → ICN',
-          flight: {
-            airline: '대한항공', flightNumber: 'KE706',
-            from: { code: 'NRT', name: '나리타 국제공항', terminal: '1', gate: '62', time: '18:30' },
-            to: { code: 'ICN', name: '인천국제공항', terminal: '2', time: '21:00' },
-            duration: '2시간 30분', seat: '18A, 18B', booking: 'ABCD1234', status: '체크인 가능'
-          }
-        }
-      ]
-    }
-  ]
-};
-
-// Mock nearby places data keyed by location name
-const NEARBY = {
-  '센소지 (浅草寺)': [
-    { name: '나카미세 상점가', category: '전통 기념품 · 간식', dist: '0.05km', rating: 4.4 },
-    { name: '다이코쿠야 텐동', category: '덴푸라 · 1887년', dist: '0.2km', rating: 4.5 },
-    { name: '스미다 공원', category: '벚꽃 명소', dist: '0.4km', rating: 4.6 },
-    { name: '도쿄 스카이트리', category: '전망대', dist: '1.2km', rating: 4.5 },
-    { name: '카미야 바', category: '일본 최초 바 · 1880', dist: '0.3km', rating: 4.3 }
-  ],
-  '시부야 스크램블 크로싱': [
-    { name: 'Starbucks 츠타야 시부야점', category: '카페 · 전망 포인트', dist: '0.05km', rating: 4.2 },
-    { name: '시부야 스크램블 스퀘어', category: '쇼핑 · 전망대', dist: '0.1km', rating: 4.5 },
-    { name: '하치코 동상', category: '포토 스팟', dist: '0.08km', rating: 4.4 },
-    { name: '이치란 라멘 시부야본점', category: '돈코츠 라멘', dist: '0.15km', rating: 4.3 },
-    { name: '시부야 파르코', category: '쇼핑몰', dist: '0.3km', rating: 4.3 }
-  ],
-  '메이지 진구 (明治神宮)': [
-    { name: '하라주쿠 타케시타도리', category: '패션 · 스트릿', dist: '0.3km', rating: 4.2 },
-    { name: 'Blue Bottle 아오야마', category: '스페셜티 커피', dist: '1.0km', rating: 4.4 },
-    { name: '오모테산도 힐즈', category: '명품 쇼핑', dist: '0.7km', rating: 4.4 },
-    { name: '요요기 공원', category: '도시 공원', dist: '0.2km', rating: 4.6 }
-  ],
-  'Park Hyatt Tokyo': [
-    { name: '신주쿠 교엔 국립정원', category: '정원 · 산책', dist: '1.8km', rating: 4.7 },
-    { name: 'Kozue 레스토랑', category: '호텔 일식당 · 40층', dist: '0.0km', rating: 4.6 },
-    { name: '오모이데 요코초', category: '야키토리 거리', dist: '1.4km', rating: 4.4 },
-    { name: '뉴욕 바', category: '호텔 바 · 52층', dist: '0.0km', rating: 4.5 },
-    { name: '가부키초', category: '유흥 · 볼거리', dist: '1.5km', rating: 4.1 }
-  ],
-  'teamLab Planets TOKYO': [
-    { name: '토요스 시장', category: '수산시장 · 스시', dist: '0.8km', rating: 4.3 },
-    { name: '라라포트 토요스', category: '쇼핑몰', dist: '0.5km', rating: 4.3 }
-  ],
-  '신주쿠 교엔 국립정원': [
-    { name: '이세탄 신주쿠', category: '백화점 · 지하 식품관', dist: '0.9km', rating: 4.4 },
-    { name: '킷테 마루노우치', category: '복합 상가', dist: '3.5km', rating: 4.4 },
-    { name: 'Park Hyatt Tokyo', category: '호텔 · 숙박', dist: '1.8km', rating: 4.5 }
-  ]
-};
-
-// ==================== STATE ====================
-let state = {
-  currentDay: 0,
-  selectedEventId: null,
-  editingEventId: null,
-  editingType: 'activity'
-};
-
-let map = null;
-let markers = [];
-
-// ==================== ICONS (SVG) ====================
-const ICONS = {
-  flight: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg>',
-  transit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="16" rx="2"/><path d="M4 11h16"/><circle cx="8" cy="15" r="1"/><circle cx="16" cy="15" r="1"/></svg>',
-  lodging: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22h18"/><path d="M5 22V6l7-3 7 3v16"/><path d="M9 22v-7h6v7"/></svg>',
-  activity: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 0-8 8c0 6 8 12 8 12s8-6 8-12a8 8 0 0 0-8-8z"/></svg>',
-  food: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11h18M5 11V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v6M5 11v10h14V11"/></svg>'
-};
-
-const TYPE_LABELS = {
-  flight: '항공편',
-  transit: '교통편',
-  lodging: '숙소',
-  activity: '방문지',
-  food: '식사'
-};
-
-const TYPE_COLORS = {
-  flight: '#6B8CAE',
-  transit: '#C08552',
-  lodging: '#2A4A3A',
-  activity: '#3A3833',
-  food: '#B8564F'
-};
-
-// ==================== RENDER: DAYS RAIL ====================
-function renderDaysRail() {
-  const rail = document.getElementById('days-rail');
-  rail.innerHTML = TRIP.days.map((day, i) => `
-    <button class="day-chip ${i === state.currentDay ? 'active' : ''}" onclick="selectDay(${i})">
-      <span class="d-num">0${i + 1}</span>
-      <span class="d-label">${day.date.split(' ').slice(0, 2).join(' ')}</span>
-    </button>
-  `).join('');
-}
-
-// ==================== RENDER: DAY HEADER ====================
-function renderDayHeader() {
-  const day = TRIP.days[state.currentDay];
-  const el = document.getElementById('day-header');
-  el.innerHTML = `
-    <h2>Day 0${state.currentDay + 1} · <em>${day.label}</em></h2>
-    <div class="subtitle">${day.date} · ${day.events.length} ITEMS</div>
-  `;
-}
-
-// ==================== RENDER: TIMELINE ====================
-function renderTimeline() {
-  const day = TRIP.days[state.currentDay];
-  const tl = document.getElementById('timeline');
-
-  if (day.events.length === 0) {
-    tl.innerHTML = `
-      <div class="empty-state">
-        <p>이 날의 일정이 아직 없어요.</p>
-        <button class="add-event-btn" onclick="openAddEvent()" style="margin-top:16px;">+ 첫 일정 추가</button>
+<!-- MODAL: 공유 -->
+<div class="modal-backdrop" id="modal-share" onclick="if(event.target===this)closeModal('modal-share')">
+  <div class="modal">
+    <div class="modal-head"><h3>여행 <em>공유하기</em></h3></div>
+    <div class="modal-body">
+      <div class="share-link-box">
+        <input type="text" id="share-link-input" readonly>
+        <button class="btn btn-primary" onclick="copyShareLink()">복사</button>
       </div>
-    `;
+      <div class="copy-ok" id="copy-ok">링크가 복사됐어요!</div>
+      <div class="share-info">
+        <strong>공유 방식 안내</strong><br>
+        링크를 받은 사람이 열면 현재 일정의 사본이 그 사람의 목록에 저장돼요. 각자 편집 후 링크를 다시 공유하면 최신 일정을 서로 반영할 수 있어요.
+      </div>
+    </div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal('modal-share')">닫기</button></div>
+  </div>
+</div>
+
+<!-- MODAL: 초대 수락 -->
+<div class="modal-backdrop" id="modal-invite" onclick="if(event.target===this)closeModal('modal-invite')">
+  <div class="modal">
+    <div class="modal-head"><h3>여행에 <em>초대받았어요</em></h3></div>
+    <div class="modal-body">
+      <div class="invite-banner">
+        <div class="ib-label">공유된 여행</div>
+        <div class="ib-title" id="invite-title">—</div>
+        <div class="ib-meta" id="invite-meta">—</div>
+      </div>
+      <p class="invite-desc">이 여행 일정을 내 여행 목록에 저장하고 자유롭게 편집할 수 있어요. 편집 후 공유 링크를 다시 만들면 상대방에게 업데이트된 일정을 보낼 수 있어요.</p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('modal-invite')">취소</button>
+      <button class="btn btn-primary" onclick="acceptInvite()">내 여행에 저장하기</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const NAVER_KEY = 'ms0oiff08d';
+const TYPE_LABELS = {flight:'항공편',transit:'교통편',lodging:'숙소',activity:'방문지',food:'식사'};
+const TYPE_COLORS = {flight:'#6B8CAE',transit:'#C08552',lodging:'#2A4A3A',activity:'#3A3833',food:'#B8564F'};
+const ICONS = {
+  flight:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg>',
+  transit:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="16" rx="2"/><path d="M4 11h16"/><circle cx="8" cy="15" r="1"/><circle cx="16" cy="15" r="1"/></svg>',
+  lodging:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22h18"/><path d="M5 22V6l7-3 7 3v16"/><path d="M9 22v-7h6v7"/></svg>',
+  activity:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 0-8 8c0 6 8 12 8 12s8-6 8-12a8 8 0 0 0-8-8z"/></svg>',
+  food:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11h18M5 11V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v6M5 11v10h14V11"/></svg>'
+};
+const BANNERS = ['banner-0','banner-1','banner-2','banner-3','banner-4','banner-5'];
+
+let trips = [];
+let currentTripId = null;
+let state = {currentDay:0,selectedEventId:null,editingEventId:null,editingType:'activity'};
+let map = null, markers = [], pendingInvite = null;
+
+// STORAGE
+function saveTrips(){try{localStorage.setItem('wayfarer_trips',JSON.stringify(trips));}catch(e){}}
+function loadTrips(){try{trips=JSON.parse(localStorage.getItem('wayfarer_trips')||'[]');}catch(e){trips=[];}}
+function genId(){return 'trip_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);}
+
+// SHARE ENCODING
+function encodeTrip(trip){try{return btoa(unescape(encodeURIComponent(JSON.stringify(trip))));}catch(e){return '';}}
+function decodeTrip(str){try{return JSON.parse(decodeURIComponent(escape(atob(str))));}catch(e){return null;}}
+function getShareLink(trip){return location.origin+location.pathname+'#share='+encodeTrip(trip);}
+function parseShareHash(){const h=location.hash;if(!h.startsWith('#share='))return null;return decodeTrip(h.slice(7));}
+
+// SCREENS
+function showScreen(name){
+  document.getElementById('screen-home').classList.toggle('hidden',name!=='home');
+  document.getElementById('screen-trip').classList.toggle('hidden',name!=='trip');
+}
+function goHome(){
+  showScreen('home');currentTripId=null;
+  state={currentDay:0,selectedEventId:null,editingEventId:null,editingType:'activity'};
+  renderHomeScreen();
+}
+
+// HOME
+function renderHomeScreen(){
+  const grid=document.getElementById('trips-grid');
+  if(trips.length===0){
+    grid.innerHTML=`<div class="new-trip-card" onclick="openNewTripModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>첫 번째 여행 만들기</span></div>`;
     return;
   }
-
-  const eventsHtml = day.events.map(ev => {
-    const subtitleBits = [];
-    if (ev.type === 'flight' && ev.flight) {
-      subtitleBits.push(`<span class="chip">${ev.flight.flightNumber}</span>`);
-      if (ev.flight.from.gate) subtitleBits.push(`<span>게이트 ${ev.flight.from.gate}</span>`);
-      if (ev.flight.seat) subtitleBits.push(`<span>좌석 ${ev.flight.seat}</span>`);
-    } else if (ev.location) {
-      subtitleBits.push(`<span>${ev.location.name}</span>`);
-    }
-
-    return `
-      <div class="event t-${ev.type} ${state.selectedEventId === ev.id ? 'selected' : ''}" onclick="selectEvent('${ev.id}')">
-        <div class="event-time">
-          ${ev.time}
-          ${ev.endTime ? `<span class="t-end">${ev.endTime}</span>` : ''}
-        </div>
-        <div class="event-body">
-          <div class="event-dot"></div>
-          <div class="event-card">
-            <div class="event-type t-${ev.type}">
-              ${ICONS[ev.type]}
-              ${TYPE_LABELS[ev.type]}
-            </div>
-            <div class="event-title">${ev.title}</div>
-            ${subtitleBits.length ? `<div class="event-meta">${subtitleBits.join('')}</div>` : ''}
-          </div>
+  let html=trips.map((trip,idx)=>{
+    const total=trip.days.reduce((s,d)=>s+d.events.length,0);
+    return `<div class="trip-card" onclick="openTrip('${trip.id}')">
+      <div class="trip-card-banner ${BANNERS[idx%BANNERS.length]}"></div>
+      <div class="trip-card-body">
+        <div class="trip-card-label">여행${trip.shared?'<span class="shared-badge">공유됨</span>':''}</div>
+        <div class="trip-card-title">${esc(trip.title)}</div>
+        <div class="trip-card-stats">
+          <div class="trip-stat"><div class="s-num">${trip.days.length}</div><div class="s-label">일</div></div>
+          <div class="trip-stat"><div class="s-num">${total}</div><div class="s-label">일정</div></div>
+          <div class="trip-stat"><div class="s-num">${trip.travelers||1}</div><div class="s-label">명</div></div>
         </div>
       </div>
-    `;
+      <div class="trip-card-footer">
+        <span class="trip-card-date">${esc(trip.subtitle||'날짜 미정')}</span>
+        <div class="card-actions" onclick="event.stopPropagation()">
+          <button title="공유" onclick="quickShare('${trip.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg></button>
+          <button title="삭제" onclick="deleteTrip('${trip.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/></svg></button>
+        </div>
+      </div>
+    </div>`;
   }).join('');
+  html+=`<div class="new-trip-card" onclick="openNewTripModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>새 여행 추가</span></div>`;
+  grid.innerHTML=html;
+}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
-  tl.innerHTML = eventsHtml + `
-    <button class="add-event-btn" onclick="openAddEvent()">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      일정 추가
-    </button>
-  `;
+// TRIP CRUD
+function openNewTripModal(){clearNewTripForm();openModal('modal-new-trip');}
+function createTrip(){
+  const title=document.getElementById('nt-title').value.trim();
+  if(!title){alert('여행 이름을 입력해 주세요.');return;}
+  const sub=document.getElementById('nt-sub').value.trim();
+  const start=document.getElementById('nt-start').value;
+  const end=document.getElementById('nt-end').value;
+  const travelers=parseInt(document.getElementById('nt-travelers').value)||2;
+  const numDays=parseInt(document.getElementById('nt-days').value)||3;
+  let subtitle=sub||'날짜 미정';
+  if(start&&end){const fmt=d=>{const p=d.split('-');return p[1]+'/'+p[2];};subtitle=fmt(start)+' — '+fmt(end)+(sub?' · '+sub:'');}
+  const trip={id:genId(),title,subtitle,travelers,days:Array.from({length:numDays},(_,i)=>({label:(i+1)+'번째 날',date:start?offsetDate(start,i):'날짜 미정',center:[37.5665,126.9780],events:[]}))};
+  trips.push(trip);saveTrips();closeModal('modal-new-trip');openTrip(trip.id);
+}
+function offsetDate(start,n){const d=new Date(start);d.setDate(d.getDate()+n);return(d.getMonth()+1)+'월 '+d.getDate()+'일';}
+function deleteTrip(id){if(!confirm('이 여행을 삭제할까요?'))return;trips=trips.filter(t=>t.id!==id);saveTrips();renderHomeScreen();}
+function clearNewTripForm(){['nt-title','nt-sub','nt-start','nt-end'].forEach(id=>document.getElementById(id).value='');document.getElementById('nt-travelers').value=2;document.getElementById('nt-days').value=3;}
+
+// OPEN TRIP
+function openTrip(id){
+  const trip=trips.find(t=>t.id===id);if(!trip)return;
+  currentTripId=id;state={currentDay:0,selectedEventId:null,editingEventId:null,editingType:'activity'};
+  showScreen('trip');updateTripHeader();renderDaysRail();renderDayHeader();renderTimeline();
+  if(map)renderMapMarkers();
+}
+function curTrip(){return trips.find(t=>t.id===currentTripId);}
+function updateTripHeader(){const trip=curTrip();if(!trip)return;document.getElementById('trip-title-el').textContent=trip.title;document.getElementById('trip-sub-el').textContent=trip.subtitle||'';}
+
+// DAYS
+function renderDaysRail(){
+  const trip=curTrip();if(!trip)return;
+  document.getElementById('days-rail').innerHTML=trip.days.map((d,i)=>`
+    <button class="day-chip ${i===state.currentDay?'active':''}" onclick="selectDay(${i})">
+      <span class="d-num">0${i+1}</span>
+      <span class="d-label">${esc(d.date.split(' ').slice(0,2).join(' '))}</span>
+    </button>`).join('')+`<button class="add-day-chip" onclick="addDay()" title="날 추가"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>`;
+}
+function addDay(){const trip=curTrip();if(!trip)return;const n=trip.days.length+1;trip.days.push({label:n+'번째 날',date:'날짜 미정',center:[37.5665,126.9780],events:[]});saveTrips();renderDaysRail();}
+function removeDay(idx){const trip=curTrip();if(!trip||trip.days.length<=1){alert('최소 1일은 있어야 해요.');return;}if(!confirm('이 날 전체를 삭제할까요?'))return;trip.days.splice(idx,1);if(state.currentDay>=trip.days.length)state.currentDay=trip.days.length-1;saveTrips();renderDaysRail();renderDayHeader();renderTimeline();renderMapMarkers();}
+function selectDay(i){state.currentDay=i;state.selectedEventId=null;closeDetail();renderDaysRail();renderDayHeader();renderTimeline();renderMapMarkers();}
+function renderDayHeader(){
+  const trip=curTrip();if(!trip)return;const day=trip.days[state.currentDay];
+  document.getElementById('day-header').innerHTML=`<h2>Day 0${state.currentDay+1} · <em>${esc(day.label)}</em></h2><div class="subtitle">${esc(day.date)} · ${day.events.length}개 항목 <button class="remove-day-btn" onclick="removeDay(${state.currentDay})">날 삭제</button></div>`;
 }
 
-// ==================== MAP (Naver Maps) ====================
-let naverKey = null;
-
-function applyNaverKey() {
-  const input = document.getElementById('naver-key-input');
-  const val = input.value.trim();
-  if (!val) { alert('클라이언트 ID를 입력해 주세요.'); return; }
-  naverKey = val;
-  loadNaverScript(val);
+// TIMELINE
+function renderTimeline(){
+  const trip=curTrip();if(!trip)return;
+  const day=trip.days[state.currentDay];const tl=document.getElementById('timeline');
+  if(day.events.length===0){tl.innerHTML=`<div class="empty-day"><p>이 날의 일정이 비어있어요.</p></div><button class="add-event-btn" onclick="openAddEvent()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>첫 일정 추가</button>`;return;}
+  tl.innerHTML=day.events.map(ev=>{
+    const bits=[];
+    if(ev.type==='flight'&&ev.flight){bits.push(`<span class="chip">${ev.flight.flightNumber||''}</span>`);if(ev.flight.from.gate)bits.push(`<span>게이트 ${ev.flight.from.gate}</span>`);}
+    else if(ev.location)bits.push(`<span>${esc(ev.location.name)}</span>`);
+    return `<div class="event t-${ev.type}${state.selectedEventId===ev.id?' selected':''}" onclick="selectEvent('${ev.id}')">
+      <div class="event-time">${ev.time||'—'}${ev.endTime?`<span class="t-end">${ev.endTime}</span>`:''}</div>
+      <div class="event-body"><div class="event-dot"></div><div class="event-card">
+        <div class="event-type t-${ev.type}">${ICONS[ev.type]}${TYPE_LABELS[ev.type]}</div>
+        <div class="event-title">${esc(ev.title)}</div>
+        ${bits.length?`<div class="event-meta">${bits.join('')}</div>`:''}
+      </div></div></div>`;
+  }).join('')+`<button class="add-event-btn" onclick="openAddEvent()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>일정 추가</button>`;
 }
 
-function skipNaverKey() {
-  document.getElementById('key-overlay').innerHTML = `
-    <div class="key-card" style="text-align:center;">
-      <span class="badge">지도 비활성</span>
-      <h3 style="margin-top:14px;">지도 없이 <em>일정 관리</em>만 사용 중</h3>
-      <p style="margin-top:10px;">언제든 새로고침해서 네이버 지도 키를 입력할 수 있어요. 현재는 좌측 타임라인에서 일정을 추가·수정하고, 항공편·숙소 상세 정보를 모두 확인할 수 있어요.</p>
-    </div>
-  `;
-}
-
-function loadNaverScript(key) {
-  const script = document.createElement('script');
-  script.src = `https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${encodeURIComponent(key)}`;
-  script.async = true;
-
-  // Detect auth failure globally (Naver calls this function on auth error)
-  window.navermap_authFailure = function() {
-    const overlay = document.getElementById('key-overlay');
-    overlay.innerHTML = `
-      <div class="key-card">
-        <span class="badge" style="color:#B8564F;background:rgba(184,86,79,0.08);">인증 실패</span>
-        <h3 style="margin-top:14px;">지도 <em>인증에 실패</em>했어요</h3>
-        <p style="margin-top:10px;">두 가지를 확인해 주세요:</p>
-        <div class="key-steps">
-          <ol>
-            <li>Client ID가 정확한지 (오타 · 공백)</li>
-            <li>현재 접속 중인 도메인(<code style="font-family:var(--mono);font-size:11px;background:var(--surface-warm);padding:2px 5px;border-radius:3px;">${location.hostname || 'file://'}</code>)이 NCP Application의 허용 도메인에 등록되어 있는지</li>
-            <li>Web Dynamic Map 서비스가 체크되어 있는지</li>
-          </ol>
-        </div>
-        <div class="key-input-row">
-          <input type="text" id="naver-key-input" placeholder="다른 Client ID로 다시 시도" autocomplete="off" spellcheck="false">
-          <button class="btn btn-primary" onclick="applyNaverKey()">적용</button>
-        </div>
-        <a class="key-skip" onclick="skipNaverKey()">키 없이 일정 기능만 사용하기 →</a>
-      </div>
-    `;
-  };
-
-  script.onload = () => {
-    document.getElementById('key-overlay').classList.add('hidden');
-    initNaverMap();
-  };
-  script.onerror = () => {
-    alert('네이버 지도 스크립트를 불러오지 못했습니다. 네트워크 또는 도메인 설정을 확인해 주세요.');
-  };
-  document.head.appendChild(script);
-}
-
-function initNaverMap() {
-  if (typeof naver === 'undefined' || !naver.maps) return;
-
-  map = new naver.maps.Map('map', {
-    center: new naver.maps.LatLng(35.6862, 139.6905),
-    zoom: 12,
-    mapTypeControl: false,
-    zoomControl: true,
-    zoomControlOptions: {
-      position: naver.maps.Position.TOP_RIGHT,
-      style: naver.maps.ZoomControlStyle.SMALL
-    }
+// MAP
+function applyNaverKey(){const v=document.getElementById('naver-key-input').value.trim();if(!v){alert('클라이언트 ID를 입력해 주세요.');return;}loadNaverScript(v);}
+function skipNaverKey(){document.getElementById('key-overlay').innerHTML=`<div class="key-card" style="text-align:center"><span class="badge">지도 비활성</span><h3 style="margin-top:12px">일정 관리 <em>모드</em></h3><p style="margin-top:8px;color:var(--muted);font-size:13px">지도 없이 타임라인에서 일정을 자유롭게 관리하세요.</p></div>`;}
+window.navermap_authFailure=function(){document.getElementById('key-overlay').innerHTML=`<div class="key-card"><span class="badge" style="color:#B8564F;background:rgba(184,86,79,.08)">인증 실패</span><h3 style="margin-top:12px">지도 <em>인증에 실패</em>했어요</h3><p style="margin-top:8px;color:var(--muted);font-size:13px">현재 도메인(<code style="font-family:var(--mono);font-size:11px;background:var(--surface-warm);padding:2px 5px;border-radius:3px">${location.hostname}</code>)이 NCP Application 허용 도메인에 등록되어 있는지 확인해 주세요.</p><div class="key-input-row" style="margin-top:14px"><input type="text" id="naver-key-input" placeholder="다른 Client ID 시도" autocomplete="off"><button class="btn btn-primary" onclick="applyNaverKey()">적용</button></div><span class="key-skip" onclick="skipNaverKey()">키 없이 계속하기 →</span></div>`;};
+function loadNaverScript(key){const s=document.createElement('script');s.src=`https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${encodeURIComponent(key)}`;s.async=true;s.onload=()=>{document.getElementById('key-overlay').classList.add('hidden');initNaverMap();};s.onerror=()=>alert('네이버 지도 스크립트를 불러오지 못했습니다.');document.head.appendChild(s);}
+function initNaverMap(){if(typeof naver==='undefined')return;map=new naver.maps.Map('map',{center:new naver.maps.LatLng(37.5665,126.9780),zoom:12,mapTypeControl:false,zoomControl:true,zoomControlOptions:{position:naver.maps.Position.TOP_RIGHT,style:naver.maps.ZoomControlStyle.SMALL}});renderMapMarkers();}
+function renderMapMarkers(){
+  if(!map||typeof naver==='undefined')return;
+  markers.forEach(m=>m.setMap(null));markers=[];
+  const trip=curTrip();if(!trip)return;
+  const day=trip.days[state.currentDay];
+  const bounds=new naver.maps.LatLngBounds(new naver.maps.LatLng(90,180),new naver.maps.LatLng(-90,-180));
+  let has=false;
+  day.events.forEach((ev,idx)=>{
+    if(!ev.location)return;
+    const ll=new naver.maps.LatLng(ev.location.lat,ev.location.lng);
+    const m=new naver.maps.Marker({position:ll,map,icon:{content:`<div class="marker-pin${state.selectedEventId===ev.id?' active':''}" style="background:${TYPE_COLORS[ev.type]}"><span>${idx+1}</span></div>`,anchor:new naver.maps.Point(15,30)}});
+    naver.maps.Event.addListener(m,'click',()=>selectEvent(ev.id));
+    markers.push(m);bounds.extend(ll);has=true;
   });
-
-  renderMapMarkers();
+  if(has){map.fitBounds(bounds,{top:80,right:80,bottom:80,left:80});setTimeout(()=>{if(map.getZoom()>15)map.setZoom(15);},100);}
+  else{map.setCenter(new naver.maps.LatLng(day.center[0],day.center[1]));map.setZoom(12);}
 }
 
-function renderMapMarkers() {
-  if (!map || typeof naver === 'undefined') return;
+// DETAIL
+function selectEvent(id){
+  state.selectedEventId=id;const trip=curTrip();if(!trip)return;
+  const ev=trip.days[state.currentDay].events.find(e=>e.id===id);if(!ev)return;
+  renderTimeline();renderMapMarkers();renderDetail(ev);
+  if(ev.location&&map&&typeof naver!=='undefined'){map.panTo(new naver.maps.LatLng(ev.location.lat,ev.location.lng));if(map.getZoom()<14)map.setZoom(14);}
+}
+function renderDetail(ev){
+  document.getElementById('d-type').textContent=TYPE_LABELS[ev.type];
+  document.getElementById('d-title').innerHTML=esc(ev.title).replace(/→/g,'<em>→</em>');
+  let html=`<div class="detail-section"><div class="detail-label">시간</div><div style="font-family:var(--mono);font-size:13px">${ev.time||'—'}${ev.endTime?' — '+ev.endTime:''}</div></div>`;
+  if(ev.type==='flight'&&ev.flight){const f=ev.flight;html+=`<div class="detail-section"><div class="detail-label">항공편</div><div class="flight-route"><div class="flight-port"><div class="code">${f.from.code}</div><div class="name">${f.from.name||''}</div><div class="time">${f.from.time||''}</div></div><div class="flight-arrow"><span>→</span><span class="dur">${f.duration||''}</span></div><div class="flight-port"><div class="code">${f.to.code}</div><div class="name">${f.to.name||''}</div><div class="time">${f.to.time||''}</div></div></div><div class="info-grid"><div class="info-cell"><div class="k">편명</div><div class="v mono">${f.flightNumber||'—'}</div></div><div class="info-cell"><div class="k">항공사</div><div class="v">${f.airline||'—'}</div></div><div class="info-cell"><div class="k">터미널</div><div class="v mono">T${f.from.terminal||'—'}</div></div><div class="info-cell gate-hi"><div class="k">게이트</div><div class="v mono">${f.from.gate||'미정'}</div></div><div class="info-cell"><div class="k">좌석</div><div class="v mono">${f.seat||'—'}</div></div><div class="info-cell"><div class="k">예약번호</div><div class="v mono">${f.booking||'—'}</div></div></div>${f.status?`<div class="status-dot">${f.status}</div>`:''}</div>`;}
+  if(ev.location)html+=`<div class="detail-section"><div class="detail-label">장소</div><div style="font-size:13px;font-weight:500">${esc(ev.location.name)}</div>${ev.location.address?`<div style="font-size:11px;color:var(--muted);margin-top:2px">${esc(ev.location.address)}</div>`:''}</div>`;
+  if(ev.notes)html+=`<div class="detail-section"><div class="detail-label">메모</div><div class="notes-text">${esc(ev.notes)}</div></div>`;
+  document.getElementById('d-body').innerHTML=html;
+  document.getElementById('detail-overlay').classList.remove('hidden');
+}
+function closeDetail(){document.getElementById('detail-overlay').classList.add('hidden');state.selectedEventId=null;renderTimeline();renderMapMarkers();}
 
-  // Clear old
-  markers.forEach(m => m.setMap(null));
-  markers = [];
+// EVENTS
+function openAddEvent(){state.editingEventId=null;document.getElementById('event-modal-title').innerHTML='일정 <em>추가</em>';clearEventForm();setFormType('activity');openModal('modal-event');}
+function editCurrentEvent(){
+  if(!state.selectedEventId)return;const trip=curTrip();
+  const ev=trip.days[state.currentDay].events.find(e=>e.id===state.selectedEventId);if(!ev)return;
+  state.editingEventId=ev.id;document.getElementById('event-modal-title').innerHTML='일정 <em>수정</em>';
+  clearEventForm();setFormType(ev.type);
+  document.getElementById('f-title').value=ev.title||'';
+  document.getElementById('f-time').value=ev.time||'';
+  document.getElementById('f-endtime').value=ev.endTime||'';
+  document.getElementById('f-notes').value=ev.notes||'';
+  if(ev.type==='flight'&&ev.flight){document.getElementById('f-airline').value=ev.flight.airline||'';document.getElementById('f-flightno').value=ev.flight.flightNumber||'';document.getElementById('f-from').value=ev.flight.from.code||'';document.getElementById('f-to').value=ev.flight.to.code||'';document.getElementById('f-terminal').value=ev.flight.from.terminal||'';document.getElementById('f-gate').value=ev.flight.from.gate||'';document.getElementById('f-seat').value=ev.flight.seat||'';document.getElementById('f-booking').value=ev.flight.booking||'';}
+  if(ev.location){document.getElementById('f-locname').value=ev.location.name||'';document.getElementById('f-lat').value=ev.location.lat||'';document.getElementById('f-lng').value=ev.location.lng||'';}
+  openModal('modal-event');
+}
+function deleteCurrentEvent(){if(!state.selectedEventId||!confirm('이 일정을 삭제할까요?'))return;const trip=curTrip();trip.days[state.currentDay].events=trip.days[state.currentDay].events.filter(e=>e.id!==state.selectedEventId);saveTrips();closeDetail();}
+function saveEvent(){
+  const title=document.getElementById('f-title').value.trim();if(!title){alert('제목을 입력해 주세요.');return;}
+  const type=state.editingType;
+  const ev={id:state.editingEventId||'ev_'+Date.now(),type,title,time:document.getElementById('f-time').value,endTime:document.getElementById('f-endtime').value,notes:document.getElementById('f-notes').value};
+  if(type==='flight'){ev.flight={airline:document.getElementById('f-airline').value,flightNumber:document.getElementById('f-flightno').value,from:{code:document.getElementById('f-from').value.toUpperCase(),name:document.getElementById('f-from').value.toUpperCase()+' 공항',terminal:document.getElementById('f-terminal').value,gate:document.getElementById('f-gate').value,time:ev.time},to:{code:document.getElementById('f-to').value.toUpperCase(),name:document.getElementById('f-to').value.toUpperCase()+' 공항',time:ev.endTime},duration:'—',seat:document.getElementById('f-seat').value,booking:document.getElementById('f-booking').value,status:'입력 완료'};}
+  else{const n=document.getElementById('f-locname').value;const la=parseFloat(document.getElementById('f-lat').value);const ln=parseFloat(document.getElementById('f-lng').value);if(n&&!isNaN(la)&&!isNaN(ln))ev.location={name:n,lat:la,lng:ln};}
+  const trip=curTrip();const day=trip.days[state.currentDay];
+  if(state.editingEventId){const i=day.events.findIndex(e=>e.id===state.editingEventId);if(i!==-1)day.events[i]=ev;}
+  else{day.events.push(ev);day.events.sort((a,b)=>(a.time||'').localeCompare(b.time||''));}
+  saveTrips();closeModal('modal-event');renderDayHeader();renderTimeline();renderMapMarkers();
+}
+function clearEventForm(){['f-title','f-time','f-endtime','f-airline','f-flightno','f-from','f-to','f-terminal','f-gate','f-seat','f-booking','f-locname','f-lat','f-lng','f-notes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});}
+function setFormType(type){state.editingType=type;document.querySelectorAll('.type-btn').forEach(b=>b.classList.toggle('active',b.dataset.type===type));document.getElementById('f-flight-fields').style.display=type==='flight'?'block':'none';document.getElementById('f-location-fields').style.display=type==='flight'?'none':'block';}
+document.querySelectorAll('.type-btn').forEach(b=>b.addEventListener('click',()=>setFormType(b.dataset.type)));
 
-  const day = TRIP.days[state.currentDay];
-  const bounds = new naver.maps.LatLngBounds(
-    new naver.maps.LatLng(90, 180),
-    new naver.maps.LatLng(-90, -180)
-  );
-  let hasPoints = false;
-
-  day.events.forEach((ev, idx) => {
-    if (!ev.location) return;
-    const color = TYPE_COLORS[ev.type];
-    const isSelected = state.selectedEventId === ev.id;
-    const latlng = new naver.maps.LatLng(ev.location.lat, ev.location.lng);
-
-    const marker = new naver.maps.Marker({
-      position: latlng,
-      map: map,
-      icon: {
-        content: `<div class="marker-pin ${isSelected ? 'active' : ''}" style="background:${color}"><span>${idx + 1}</span></div>`,
-        anchor: new naver.maps.Point(15, 30)
-      }
-    });
-
-    naver.maps.Event.addListener(marker, 'click', () => selectEvent(ev.id));
-    markers.push(marker);
-    bounds.extend(latlng);
-    hasPoints = true;
-  });
-
-  if (hasPoints) {
-    map.fitBounds(bounds, { top: 80, right: 80, bottom: 80, left: 80 });
-    // Zoom cap
-    setTimeout(() => { if (map.getZoom() > 15) map.setZoom(15); }, 100);
-  } else {
-    map.setCenter(new naver.maps.LatLng(day.center[0], day.center[1]));
-    map.setZoom(12);
-  }
+// TRIP EDIT
+function openTripEdit(){
+  const trip=curTrip();if(!trip)return;
+  const t=prompt('여행 이름',trip.title);if(!t)return;
+  const s=prompt('부제 (날짜, 여행지)',trip.subtitle||'');
+  trip.title=t;trip.subtitle=s||'';saveTrips();updateTripHeader();
 }
 
-// ==================== DETAIL OVERLAY ====================
-function renderDetail(ev) {
-  const overlay = document.getElementById('detail-overlay');
-  document.getElementById('d-type').textContent = TYPE_LABELS[ev.type];
-  document.getElementById('d-title').innerHTML = ev.title.replace(/→/g, '<em>→</em>');
+// SHARE
+function openShareModal(){const trip=curTrip();if(!trip)return;document.getElementById('share-link-input').value=getShareLink(trip);document.getElementById('copy-ok').classList.remove('show');openModal('modal-share');}
+function copyShareLink(){const inp=document.getElementById('share-link-input');navigator.clipboard.writeText(inp.value).catch(()=>{inp.select();document.execCommand('copy');});document.getElementById('copy-ok').classList.add('show');}
+function quickShare(id){const trip=trips.find(t=>t.id===id);if(!trip)return;const link=getShareLink(trip);navigator.clipboard.writeText(link).catch(()=>{});alert('공유 링크가 복사됐어요!\n\n링크를 받은 사람이 열면 이 일정을 자신의 목록에 저장할 수 있어요.');}
+function openInviteInput(){const url=prompt('공유받은 링크를 붙여넣어 주세요:');if(!url)return;try{const h=(url.split('#')[1]||'');if(!h.startsWith('share=')){alert('올바른 Wayfarer 공유 링크가 아닌 것 같아요.');return;}const d=decodeTrip(h.slice(6));if(!d)throw new Error();showInviteModal(d);}catch(e){alert('링크를 읽을 수 없어요. 링크가 올바른지 확인해 주세요.');}}
+function showInviteModal(trip){pendingInvite=trip;document.getElementById('invite-title').textContent=trip.title;const total=trip.days.reduce((s,d)=>s+d.events.length,0);document.getElementById('invite-meta').textContent=`${trip.days.length}일 · ${total}개 일정 · ${trip.travelers||1}명`;openModal('modal-invite');}
+function acceptInvite(){if(!pendingInvite)return;const t={...pendingInvite,id:genId(),shared:true};trips.push(t);saveTrips();pendingInvite=null;closeModal('modal-invite');renderHomeScreen();openTrip(t.id);}
 
-  const body = document.getElementById('d-body');
-  let html = '';
+// MODALS
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
 
-  // Time section
-  html += `
-    <div class="detail-section">
-      <div class="detail-label">시간</div>
-      <div style="font-family:var(--mono); font-size:14px; color:var(--ink);">
-        ${ev.time}${ev.endTime ? ` — ${ev.endTime}` : ''}
-      </div>
-    </div>
-  `;
-
-  // Flight-specific
-  if (ev.type === 'flight' && ev.flight) {
-    const f = ev.flight;
-    html += `
-      <div class="detail-section">
-        <div class="detail-label">항공편 정보</div>
-        <div class="flight-route">
-          <div class="flight-port">
-            <div class="code">${f.from.code}</div>
-            <div class="name">${f.from.name}</div>
-            <div class="time">${f.from.time}</div>
-          </div>
-          <div class="flight-arrow">
-            <span>→</span>
-            <span class="duration">${f.duration}</span>
-          </div>
-          <div class="flight-port">
-            <div class="code">${f.to.code}</div>
-            <div class="name">${f.to.name}</div>
-            <div class="time">${f.to.time}</div>
-          </div>
-        </div>
-        <div class="info-grid">
-          <div class="info-cell">
-            <div class="k">편명</div>
-            <div class="v mono">${f.flightNumber}</div>
-          </div>
-          <div class="info-cell">
-            <div class="k">항공사</div>
-            <div class="v">${f.airline}</div>
-          </div>
-          <div class="info-cell">
-            <div class="k">터미널</div>
-            <div class="v mono">T${f.from.terminal}</div>
-          </div>
-          <div class="info-cell gate-highlight">
-            <div class="k">게이트</div>
-            <div class="v mono">${f.from.gate || '미정'}</div>
-          </div>
-          <div class="info-cell">
-            <div class="k">좌석</div>
-            <div class="v mono">${f.seat}</div>
-          </div>
-          <div class="info-cell">
-            <div class="k">예약번호</div>
-            <div class="v mono">${f.booking}</div>
-          </div>
-        </div>
-        <div class="status-dot">${f.status}</div>
-      </div>
-    `;
-  }
-
-  // Location section
-  if (ev.location) {
-    html += `
-      <div class="detail-section">
-        <div class="detail-label">장소</div>
-        <div style="font-size: 14px; font-weight: 500; color: var(--ink); margin-bottom: 2px;">
-          ${ev.location.name}
-        </div>
-        ${ev.location.address ? `<div style="font-size: 12px; color: var(--muted);">${ev.location.address}</div>` : ''}
-      </div>
-    `;
-
-    // Nearby
-    const near = NEARBY[ev.location.name];
-    if (near && near.length) {
-      html += `
-        <div class="detail-section">
-          <div class="detail-label">주변 상권 · 가게</div>
-          <div class="nearby-list">
-            ${near.map(n => `
-              <div class="nearby-item">
-                <div>
-                  <div class="n-name">${n.name}</div>
-                  <div class="n-cat">${n.category}</div>
-                </div>
-                <div class="n-meta">
-                  <div class="n-dist">${n.dist}</div>
-                  <div class="n-rating">★ ${n.rating}</div>
-                </div>
-              </div>
-            `).join('')}
-          </div>
-        </div>
-      `;
-    }
-  }
-
-  // Notes
-  if (ev.notes) {
-    html += `
-      <div class="detail-section">
-        <div class="detail-label">메모</div>
-        <div class="notes-text">${ev.notes}</div>
-      </div>
-    `;
-  }
-
-  body.innerHTML = html;
-  overlay.classList.remove('hidden');
-}
-
-function closeDetail() {
-  document.getElementById('detail-overlay').classList.add('hidden');
-  state.selectedEventId = null;
-  renderTimeline();
-  renderMapMarkers();
-}
-
-// ==================== ACTIONS ====================
-function selectDay(i) {
-  state.currentDay = i;
-  state.selectedEventId = null;
-  closeDetail();
-  renderDaysRail();
-  renderDayHeader();
-  renderTimeline();
-  renderMapMarkers();
-}
-
-function selectEvent(id) {
-  state.selectedEventId = id;
-  const day = TRIP.days[state.currentDay];
-  const ev = day.events.find(e => e.id === id);
-  if (!ev) return;
-  renderTimeline();
-  renderMapMarkers();
-  renderDetail(ev);
-  if (ev.location && map && typeof naver !== 'undefined') {
-    map.panTo(new naver.maps.LatLng(ev.location.lat, ev.location.lng));
-    if (map.getZoom() < 14) map.setZoom(14);
-  }
-}
-
-// ==================== MODAL ====================
-function openAddEvent() {
-  state.editingEventId = null;
-  state.editingType = 'activity';
-  document.getElementById('modal-title').innerHTML = '일정 <em>추가</em>';
-  clearForm();
-  setFormType('activity');
-  document.getElementById('modal-backdrop').classList.add('open');
-}
-
-function editCurrentEvent() {
-  if (!state.selectedEventId) return;
-  const day = TRIP.days[state.currentDay];
-  const ev = day.events.find(e => e.id === state.selectedEventId);
-  if (!ev) return;
-
-  state.editingEventId = ev.id;
-  state.editingType = ev.type;
-
-  document.getElementById('modal-title').innerHTML = '일정 <em>수정</em>';
-  clearForm();
-  setFormType(ev.type);
-
-  document.getElementById('f-title').value = ev.title;
-  document.getElementById('f-time').value = ev.time || '';
-  document.getElementById('f-endtime').value = ev.endTime || '';
-  document.getElementById('f-notes').value = ev.notes || '';
-
-  if (ev.type === 'flight' && ev.flight) {
-    document.getElementById('f-airline').value = ev.flight.airline || '';
-    document.getElementById('f-flightno').value = ev.flight.flightNumber || '';
-    document.getElementById('f-from').value = ev.flight.from.code || '';
-    document.getElementById('f-to').value = ev.flight.to.code || '';
-    document.getElementById('f-terminal').value = ev.flight.from.terminal || '';
-    document.getElementById('f-gate').value = ev.flight.from.gate || '';
-    document.getElementById('f-seat').value = ev.flight.seat || '';
-    document.getElementById('f-booking').value = ev.flight.booking || '';
-  }
-
-  if (ev.location) {
-    document.getElementById('f-locname').value = ev.location.name || '';
-    document.getElementById('f-lat').value = ev.location.lat || '';
-    document.getElementById('f-lng').value = ev.location.lng || '';
-  }
-
-  document.getElementById('modal-backdrop').classList.add('open');
-}
-
-function deleteCurrentEvent() {
-  if (!state.selectedEventId) return;
-  if (!confirm('이 일정을 삭제하시겠어요?')) return;
-  const day = TRIP.days[state.currentDay];
-  day.events = day.events.filter(e => e.id !== state.selectedEventId);
-  closeDetail();
-}
-
-function closeModal() {
-  document.getElementById('modal-backdrop').classList.remove('open');
-}
-
-function clearForm() {
-  ['f-title','f-time','f-endtime','f-airline','f-flightno','f-from','f-to','f-terminal','f-gate','f-seat','f-booking','f-locname','f-lat','f-lng','f-notes']
-    .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
-}
-
-function setFormType(type) {
-  state.editingType = type;
-  document.querySelectorAll('.type-btn').forEach(b => {
-    b.classList.toggle('active', b.dataset.type === type);
-  });
-  document.getElementById('f-flight-fields').style.display = type === 'flight' ? 'block' : 'none';
-  document.getElementById('f-location-fields').style.display = type === 'flight' ? 'none' : 'block';
-}
-
-document.querySelectorAll('.type-btn').forEach(btn => {
-  btn.addEventListener('click', () => setFormType(btn.dataset.type));
+// INIT
+window.addEventListener('load',()=>{
+  loadTrips();
+  const shared=parseShareHash();
+  if(shared){showInviteModal(shared);history.replaceState(null,'',location.pathname);}
+  renderHomeScreen();
+  loadNaverScript(NAVER_KEY);
 });
-
-function saveEvent() {
-  const title = document.getElementById('f-title').value.trim();
-  if (!title) { alert('제목을 입력해 주세요.'); return; }
-
-  const time = document.getElementById('f-time').value;
-  const endTime = document.getElementById('f-endtime').value;
-  const notes = document.getElementById('f-notes').value;
-  const type = state.editingType;
-
-  const newEv = {
-    id: state.editingEventId || ('e' + Date.now()),
-    type, title, time, endTime, notes
-  };
-
-  if (type === 'flight') {
-    newEv.flight = {
-      airline: document.getElementById('f-airline').value,
-      flightNumber: document.getElementById('f-flightno').value,
-      from: {
-        code: document.getElementById('f-from').value.toUpperCase(),
-        name: document.getElementById('f-from').value.toUpperCase() + ' 공항',
-        terminal: document.getElementById('f-terminal').value,
-        gate: document.getElementById('f-gate').value,
-        time: time
-      },
-      to: {
-        code: document.getElementById('f-to').value.toUpperCase(),
-        name: document.getElementById('f-to').value.toUpperCase() + ' 공항',
-        time: endTime
-      },
-      duration: '—',
-      seat: document.getElementById('f-seat').value,
-      booking: document.getElementById('f-booking').value,
-      status: '입력 완료'
-    };
-  } else {
-    const locname = document.getElementById('f-locname').value;
-    const lat = parseFloat(document.getElementById('f-lat').value);
-    const lng = parseFloat(document.getElementById('f-lng').value);
-    if (locname && !isNaN(lat) && !isNaN(lng)) {
-      newEv.location = { name: locname, lat, lng };
-    }
-  }
-
-  const day = TRIP.days[state.currentDay];
-  if (state.editingEventId) {
-    const idx = day.events.findIndex(e => e.id === state.editingEventId);
-    if (idx !== -1) day.events[idx] = newEv;
-  } else {
-    day.events.push(newEv);
-    day.events.sort((a, b) => (a.time || '').localeCompare(b.time || ''));
-  }
-
-  closeModal();
-  renderDayHeader();
-  renderTimeline();
-  renderMapMarkers();
-  if (state.editingEventId) selectEvent(state.editingEventId);
-}
-
-function openTripEdit() {
-  const newTitle = prompt('여행 제목', TRIP.title);
-  if (newTitle) {
-    TRIP.title = newTitle;
-    const parts = newTitle.split(',');
-    if (parts.length >= 2) {
-      document.getElementById('trip-title-display').innerHTML = parts[0] + ', <em>' + parts.slice(1).join(',').trim() + '</em>';
-    } else {
-      document.getElementById('trip-title-display').textContent = newTitle;
-    }
-  }
-}
-
-function exportTrip() {
-  const data = JSON.stringify(TRIP, null, 2);
-  const blob = new Blob([data], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'trip-' + Date.now() + '.json';
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-// ==================== INIT ====================
-window.addEventListener('load', () => {
-  renderDaysRail();
-  renderDayHeader();
-  renderTimeline();
-  loadNaverScript('ms0oiff08d');
-});
-
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') {
-    if (document.getElementById('modal-backdrop').classList.contains('open')) closeModal();
-    else if (!document.getElementById('detail-overlay').classList.contains('hidden')) closeDetail();
-  }
-  if (e.key === 'Enter' && e.target && e.target.id === 'naver-key-input') {
-    applyNaverKey();
-  }
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){['modal-new-trip','modal-event','modal-share','modal-invite'].forEach(id=>closeModal(id));if(!document.getElementById('detail-overlay').classList.contains('hidden'))closeDetail();}
+  if(e.key==='Enter'&&e.target&&e.target.id==='naver-key-input')applyNaverKey();
 });
 </script>
-
 </body>
 </html>
