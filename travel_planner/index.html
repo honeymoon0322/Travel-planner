@@ -172,6 +172,27 @@ input,textarea,select{font-family:inherit;font-size:inherit;color:inherit;}
 .sri-add:hover{background:var(--ink);color:var(--bg);border-color:var(--ink);}
 .sri-msg{padding:12px 14px;font-size:13px;color:var(--muted);}
 
+/* Search pin */
+.search-pin-wrap{display:flex;flex-direction:column;align-items:center;}
+.search-pin-head{width:22px;height:22px;border-radius:50% 50% 50% 0;background:var(--accent);border:3px solid #fff;transform:rotate(-45deg);box-shadow:0 2px 8px rgba(0,0,0,.25);animation:pinDrop .35s cubic-bezier(.2,.8,.2,1);}
+.search-pin-tail{width:2px;height:8px;background:rgba(42,74,58,.4);border-radius:2px;}
+@keyframes pinDrop{from{opacity:0;transform:rotate(-45deg) translateY(-16px)}to{opacity:1;transform:rotate(-45deg) translateY(0)}}
+
+/* Map click card */
+.map-click-card{position:absolute;bottom:24px;left:50%;transform:translateX(-50%) translateY(140%);background:var(--surface);border:1px solid var(--hairline-strong);border-radius:var(--r-lg);box-shadow:var(--shadow-lg);z-index:800;width:360px;transition:transform .3s cubic-bezier(.2,.8,.2,1);overflow:hidden;}
+.map-click-card.show{transform:translateX(-50%) translateY(0);}
+.mcc-head{padding:14px 16px 10px;border-bottom:1px solid var(--hairline);display:flex;align-items:flex-start;justify-content:space-between;gap:10px;}
+.mcc-icon{width:36px;height:36px;border-radius:50%;background:rgba(42,74,58,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.mcc-icon svg{width:16px;height:16px;stroke:var(--accent);stroke-width:2;}
+.mcc-info{flex:1;min-width:0;}
+.mcc-name{font-size:14px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mcc-addr{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.4;}
+.mcc-close{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--muted);flex-shrink:0;}
+.mcc-close:hover{background:var(--hairline);color:var(--ink);}
+.mcc-close svg{width:13px;height:13px;stroke-width:2;}
+.mcc-foot{padding:10px 16px;display:flex;gap:8px;background:var(--surface-warm);}
+.mcc-foot .btn{flex:1;justify-content:center;font-size:12.5px;padding:9px;}
+
 /* MAP */
 .map-panel{display:flex;flex-direction:column;background:#EEE8DA;flex:1;min-width:0;overflow:hidden;position:relative;}
 #map{flex:1;min-height:0;z-index:1;width:100%;}
@@ -334,6 +355,24 @@ input,textarea,select{font-family:inherit;font-size:inherit;color:inherit;}
           </button>
         </div>
         <div class="map-search-results" id="map-search-results"></div>
+      </div>
+
+      <!-- Map click info card -->
+      <div class="map-click-card" id="map-click-card">
+        <div class="mcc-head">
+          <div class="mcc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 0-8 8c0 6 8 12 8 12s8-6 8-12a8 8 0 0 0-8-8z"/></svg></div>
+          <div class="mcc-info">
+            <div class="mcc-name" id="mcc-name">위치 정보 불러오는 중...</div>
+            <div class="mcc-addr" id="mcc-addr"></div>
+          </div>
+          <button class="mcc-close" onclick="closeMapClickCard()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+        </div>
+        <div class="mcc-foot">
+          <button class="btn btn-primary" onclick="addClickLocationAsEvent()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            일정에 추가
+          </button>
+        </div>
       </div>
 
       <div class="key-overlay" id="key-overlay">
@@ -640,7 +679,15 @@ function renderTimeline(){
 function applyNaverKey(){const v=document.getElementById('naver-key-input').value.trim();if(!v){alert('클라이언트 ID를 입력해 주세요.');return;}loadNaverScript(v);}
 function skipNaverKey(){document.getElementById('key-overlay').innerHTML=`<div class="key-card" style="text-align:center"><span class="badge">지도 비활성</span><h3 style="margin-top:12px">일정 관리 <em>모드</em></h3><p style="margin-top:8px;color:var(--muted);font-size:13px">지도 없이 타임라인에서 일정을 자유롭게 관리하세요.</p></div>`;}
 window.navermap_authFailure=function(){document.getElementById('key-overlay').innerHTML=`<div class="key-card"><span class="badge" style="color:#B8564F;background:rgba(184,86,79,.08)">인증 실패</span><h3 style="margin-top:12px">지도 <em>인증에 실패</em>했어요</h3><p style="margin-top:8px;color:var(--muted);font-size:13px">현재 도메인(<code style="font-family:var(--mono);font-size:11px;background:var(--surface-warm);padding:2px 5px;border-radius:3px">${location.hostname}</code>)이 NCP Application 허용 도메인에 등록되어 있는지 확인해 주세요.</p><div class="key-input-row" style="margin-top:14px"><input type="text" id="naver-key-input" placeholder="다른 Client ID 시도" autocomplete="off"><button class="btn btn-primary" onclick="applyNaverKey()">적용</button></div><span class="key-skip" onclick="skipNaverKey()">키 없이 계속하기 →</span></div>`;};
-function loadNaverScript(key){const s=document.createElement('script');s.src=`https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${encodeURIComponent(key)}`;s.async=true;s.onload=()=>{document.getElementById('key-overlay').classList.add('hidden');naverLoaded=true;if(currentTripId)initNaverMap();};s.onerror=()=>alert('네이버 지도 스크립트를 불러오지 못했습니다.');document.head.appendChild(s);}
+function loadNaverScript(key){
+  const s=document.createElement('script');
+  // geocoder 서브모듈 추가 → 한국 주소/역지오코딩 지원
+  s.src=`https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${encodeURIComponent(key)}&submodules=geocoder`;
+  s.async=true;
+  s.onload=()=>{document.getElementById('key-overlay').classList.add('hidden');naverLoaded=true;if(currentTripId)initNaverMap();};
+  s.onerror=()=>alert('네이버 지도 스크립트를 불러오지 못했습니다.');
+  document.head.appendChild(s);
+}
 function initNaverMap(){
   if(typeof naver==='undefined')return;
   try {
@@ -651,13 +698,41 @@ function initNaverMap(){
       zoomControl:true,
       zoomControlOptions:{position:naver.maps.Position.TOP_RIGHT,style:naver.maps.ZoomControlStyle.SMALL}
     });
-    // 컨테이너 크기 재계산 강제 적용
     naver.maps.Event.trigger(map,'resize');
     map.autoResize();
     renderMapMarkers();
-    // 한 번 더 (타일 렌더링 보장)
     setTimeout(()=>{map&&map.autoResize();},200);
-  } catch(e) { console.error('Naver map init error:', e); }
+
+    // 지도 클릭 → 역지오코딩 → 하단 카드
+    naver.maps.Event.addListener(map,'click',function(e){
+      const lat=e.coord.lat(), lng=e.coord.lng();
+      closeMapClickCard();
+      showSearchPin(lat,lng);
+      document.getElementById('mcc-name').textContent='주소 불러오는 중...';
+      document.getElementById('mcc-addr').textContent=`${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+      document.getElementById('map-click-card').dataset.lat=lat;
+      document.getElementById('map-click-card').dataset.lng=lng;
+      document.getElementById('map-click-card').dataset.name='';
+      document.getElementById('map-click-card').classList.add('show');
+
+      if(naver.maps.Service){
+        naver.maps.Service.reverseGeocode({
+          coords:new naver.maps.LatLng(lat,lng),
+          orders:[naver.maps.Service.OrderType.ROAD_ADDR,naver.maps.Service.OrderType.ADDR].join(',')
+        },function(status,response){
+          if(status===naver.maps.Service.Status.ERROR)return;
+          const a=response.v2.address;
+          const road=a.roadAddress||'';
+          const jibun=a.jibunAddress||'';
+          const name=road||jibun||`${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+          const sub=road&&jibun?jibun:'';
+          document.getElementById('mcc-name').textContent=name;
+          document.getElementById('mcc-addr').textContent=sub;
+          document.getElementById('map-click-card').dataset.name=name;
+        });
+      }
+    });
+  } catch(e){ console.error('Naver map init error:',e); }
 }
 function renderMapMarkers(){
   if(!map||typeof naver==='undefined')return;
@@ -744,54 +819,140 @@ function showInviteModal(trip){pendingInvite=trip;document.getElementById('invit
 function acceptInvite(){if(!pendingInvite)return;const t={...pendingInvite,id:genId(),shared:true};trips.push(t);saveTrips();pendingInvite=null;closeModal('modal-invite');renderHomeScreen();openTrip(t.id);}
 
 // MAP SEARCH
+let searchPin = null;
+
+function showSearchPin(lat,lng){
+  if(searchPin)searchPin.setMap(null);
+  if(!map||typeof naver==='undefined')return;
+  searchPin=new naver.maps.Marker({
+    position:new naver.maps.LatLng(lat,lng),map,
+    icon:{
+      content:'<div class="search-pin-wrap"><div class="search-pin-head"></div><div class="search-pin-tail"></div></div>',
+      anchor:new naver.maps.Point(11,30)
+    },
+    zIndex:900
+  });
+}
+
+function removeSearchPin(){
+  if(searchPin){searchPin.setMap(null);searchPin=null;}
+}
+
 async function doMapSearch(){
   const q=document.getElementById('map-search-input').value.trim();
   if(!q)return;
   const res=document.getElementById('map-search-results');
   res.innerHTML='<div class="sri-msg">검색 중...</div>';
   res.classList.add('show');
-  try{
-    const r=await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=6&accept-language=ko,en`);
-    const data=await r.json();
-    if(!data.length){res.innerHTML='<div class="sri-msg">검색 결과가 없어요. 더 구체적으로 검색해 보세요.</div>';return;}
-    res.innerHTML=data.map(item=>{
-      const name=item.display_name.split(',')[0];
-      const addr=item.display_name.split(',').slice(1,3).join(',').trim();
-      const lat=parseFloat(item.lat);const lng=parseFloat(item.lon);
-      return `<div class="sri" onclick="selectPlace(${lat},${lng})">
-        <div class="sri-info">
-          <div class="sri-name">${esc(name)}</div>
-          <div class="sri-addr">${esc(addr)}</div>
-        </div>
-        <button class="sri-add" onclick="event.stopPropagation();addPlaceAsEvent(${lat},${lng},'${esc(name).replace(/'/g,"&#39;")}')">+ 일정 추가</button>
-      </div>`;
-    }).join('');
-  }catch(e){res.innerHTML='<div class="sri-msg" style="color:#B8564F">검색 중 오류가 발생했어요.</div>';}
+
+  // 1) 네이버 지오코더 시도 (한국 주소/장소에 강함)
+  if(typeof naver!=='undefined'&&naver.maps&&naver.maps.Service){
+    naver.maps.Service.geocode({query:q},async function(status,response){
+      const naverItems=(status!==naver.maps.Service.Status.ERROR&&response.v2.addresses.length>0)
+        ?response.v2.addresses.map(i=>({name:i.roadAddress||i.jibunAddress,addr:i.jibunAddress,lat:parseFloat(i.y),lng:parseFloat(i.x),src:'naver'}))
+        :[];
+
+      // 2) Nominatim 병행 (해외/POI에 강함)
+      let nomItems=[];
+      try{
+        const r=await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=5&addressdetails=1&namedetails=1&accept-language=ko,en`);
+        const data=await r.json();
+        nomItems=data.map(d=>{
+          const localName=d.namedetails&&(d.namedetails['name:ko']||d.namedetails.name)||d.display_name.split(',')[0];
+          const addr=d.display_name.split(',').slice(1,4).join(', ').trim();
+          return {name:localName,addr,lat:parseFloat(d.lat),lng:parseFloat(d.lon),src:'osm'};
+        });
+      }catch(e){}
+
+      // 합치기: 네이버 우선, 중복 제거(500m 이내)
+      const all=[...naverItems];
+      nomItems.forEach(ni=>{
+        const dup=all.some(ai=>Math.abs(ai.lat-ni.lat)<0.005&&Math.abs(ai.lng-ni.lng)<0.005);
+        if(!dup)all.push(ni);
+      });
+
+      if(!all.length){
+        res.innerHTML='<div class="sri-msg">검색 결과가 없어요. 다른 키워드로 시도해 보세요.</div>';
+        return;
+      }
+      renderSearchResults(all);
+    });
+  } else {
+    // 네이버 미로딩 시 Nominatim만
+    try{
+      const r=await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=6&namedetails=1&accept-language=ko,en`);
+      const data=await r.json();
+      if(!data.length){res.innerHTML='<div class="sri-msg">검색 결과가 없어요.</div>';return;}
+      renderSearchResults(data.map(d=>({
+        name:(d.namedetails&&(d.namedetails['name:ko']||d.namedetails.name))||d.display_name.split(',')[0],
+        addr:d.display_name.split(',').slice(1,3).join(',').trim(),
+        lat:parseFloat(d.lat),lng:parseFloat(d.lon)
+      })));
+    }catch(e){res.innerHTML='<div class="sri-msg" style="color:#B8564F">검색 중 오류가 발생했어요.</div>';}
+  }
 }
 
-function selectPlace(lat,lng){
+function renderSearchResults(items){
+  const res=document.getElementById('map-search-results');
+  res.innerHTML=items.slice(0,7).map(item=>`
+    <div class="sri" onclick="selectPlace(${item.lat},${item.lng},'${(item.name||'').replace(/'/g,'\\&apos;')}','${(item.addr||'').replace(/'/g,'\\&apos;')}')">
+      <div class="sri-info">
+        <div class="sri-name">${esc(item.name||'')}</div>
+        <div class="sri-addr">${esc(item.addr||'')}</div>
+      </div>
+      <button class="sri-add" onclick="event.stopPropagation();addPlaceAsEvent(${item.lat},${item.lng},'${(item.name||'').replace(/'/g,'\\&apos;')}')">+ 일정 추가</button>
+    </div>`).join('');
+}
+
+function selectPlace(lat,lng,name,addr){
   if(map&&typeof naver!=='undefined'){
     map.panTo(new naver.maps.LatLng(lat,lng));
     map.setZoom(16);
+    showSearchPin(lat,lng);
+    // 하단 카드 표시
+    const card=document.getElementById('map-click-card');
+    document.getElementById('mcc-name').textContent=name||`${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+    document.getElementById('mcc-addr').textContent=addr||'';
+    card.dataset.lat=lat;card.dataset.lng=lng;card.dataset.name=name||addr||'검색 결과';
+    card.classList.add('show');
   }
   closeMapSearch();
 }
 
 function addPlaceAsEvent(lat,lng,name){
-  closeMapSearch();
+  closeMapSearch();closeMapClickCard();removeSearchPin();
   openAddEvent();
   setTimeout(()=>{
-    document.getElementById('f-locname').value=name;
+    document.getElementById('f-locname').value=name||'';
     document.getElementById('f-lat').value=lat;
     document.getElementById('f-lng').value=lng;
-    if(document.getElementById('f-title').value==='')
-      document.getElementById('f-title').value=name;
+    if(!document.getElementById('f-title').value)document.getElementById('f-title').value=name||'';
   },100);
 }
 
 function closeMapSearch(){
   document.getElementById('map-search-results').classList.remove('show');
   document.getElementById('map-search-input').value='';
+}
+
+function closeMapClickCard(){
+  document.getElementById('map-click-card').classList.remove('show');
+  removeSearchPin();
+}
+
+function addClickLocationAsEvent(){
+  const card=document.getElementById('map-click-card');
+  const lat=parseFloat(card.dataset.lat);
+  const lng=parseFloat(card.dataset.lng);
+  const name=card.dataset.name||`${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+  closeMapClickCard();
+  openAddEvent();
+  setTimeout(()=>{
+    document.getElementById('f-locname').value=name;
+    document.getElementById('f-lat').value=lat;
+    document.getElementById('f-lng').value=lng;
+    if(!document.getElementById('f-title').value)document.getElementById('f-title').value=name;
+  },100);
 }
 
 // MODALS
@@ -819,6 +980,12 @@ document.addEventListener('click',e=>{
   const search=document.getElementById('map-search');
   if(search&&!search.contains(e.target)){
     document.getElementById('map-search-results').classList.remove('show');
+  }
+  // 클릭 카드는 카드 자체 바깥 + 지도 바깥 클릭 시 닫기
+  const card=document.getElementById('map-click-card');
+  const mapSearch=document.getElementById('map-search');
+  if(card&&card.classList.contains('show')&&!card.contains(e.target)&&mapSearch&&!mapSearch.contains(e.target)&&e.target.closest('.map-panel')===null){
+    closeMapClickCard();
   }
 });
 </script>
