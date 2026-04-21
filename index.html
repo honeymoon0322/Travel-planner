@@ -715,7 +715,7 @@ function initNaverMap(){
     renderMapMarkers();
     setTimeout(()=>{map&&map.autoResize();},200);
 
-    // 지도 클릭 → Overpass API로 반경 내 모든 장소 목록 표시
+    // 지도 클릭 → Overpass(15m) + 네이버 주소 검색 병렬 실행
     naver.maps.Event.addListener(map,'click',async function(e){
       const lat=e.coord.lat(), lng=e.coord.lng();
       clearSearchResultMarkers();
@@ -732,69 +732,98 @@ function initNaverMap(){
       card.dataset.lat=lat; card.dataset.lng=lng; card.dataset.name='';
       card.classList.add('show');
 
-      try{
-        // Overpass 프록시로 반경 40m 내 장소 전체 조회
-        const r=await fetch(`/api/overpass?lat=${lat}&lng=${lng}&radius=40`);
-        const d=await r.json();
-        const elements=d.elements||[];
+      const catKo={restaurant:'음식점',cafe:'카페',convenience:'편의점',school:'학교',hospital:'병원',pharmacy:'약국',bank:'은행',hotel:'호텔',supermarket:'마트',clothes:'의류',beauty:'미용',bar:'주점',fast_food:'패스트푸드',bakery:'베이커리',kindergarten:'유치원',library:'도서관',gym:'헬스장',parking:'주차장',office:'사무실',shop:'상점'};
 
-        // 이름 있는 것만 필터 + 중복 제거
-        const seen=new Set();
-        const places=elements.filter(el=>{
+      // 1) 네이버 역지오코딩으로 도로명 주소 획득
+      let roadAddr='', jibunAddr='';
+      await new Promise(resolve=>{
+        if(!naver.maps.Service){resolve();return;}
+        naver.maps.Service.reverseGeocode({
+          coords:new naver.maps.LatLng(lat,lng),
+          orders:[naver.maps.Service.OrderType.ROAD_ADDR,naver.maps.Service.OrderType.ADDR].join(',')
+        },function(status,response){
+          if(status!==naver.maps.Service.Status.ERROR&&response.v2){
+            roadAddr=response.v2.address.roadAddress||'';
+            jibunAddr=response.v2.address.jibunAddress||'';
+          }
+          resolve();
+        });
+      });
+
+      // 2) Overpass(15m) + 네이버 주소 검색 병렬 실행
+      const [overpassRes, naverRes] = await Promise.allSettled([
+        fetch(`/api/overpass?lat=${lat}&lng=${lng}&radius=15`).then(r=>r.ok?r.json():null).catch(()=>null),
+        (roadAddr||jibunAddr)
+          ? fetch(`/api/search?q=${encodeURIComponent(roadAddr||jibunAddr)}&x=${lng}&y=${lat}&radius=30`).then(r=>r.ok?r.json():null).catch(()=>null)
+          : Promise.resolve(null)
+      ]);
+
+      // 3) 결과 합치기 (중복 제거)
+      const seen=new Set();
+      const places=[];
+
+      // Overpass 결과
+      const od=overpassRes.status==='fulfilled'?overpassRes.value:null;
+      if(od?.elements){
+        od.elements.forEach(el=>{
           const name=el.tags&&(el.tags['name:ko']||el.tags.name);
-          if(!name||seen.has(name))return false;
+          if(!name||seen.has(name))return;
           seen.add(name);
-          return true;
-        }).map(el=>({
-          name:el.tags['name:ko']||el.tags.name||'',
-          category:el.tags.amenity||el.tags.shop||el.tags.tourism||el.tags.leisure||el.tags.office||'',
-          lat:el.lat||lat, lng:el.lon||lng
-        }));
+          places.push({name,category:el.tags?.amenity||el.tags?.shop||el.tags?.tourism||'',lat:el.lat||lat,lng:el.lon||lng,tel:'',addr:''});
+        });
+      }
 
-        const catKo={restaurant:'음식점',cafe:'카페',convenience:'편의점',school:'학교',hospital:'병원',pharmacy:'약국',bank:'은행',hotel:'호텔',supermarket:'마트',clothes:'의류',beauty:'미용',bar:'주점',fast_food:'패스트푸드',bakery:'베이커리',kindergarten:'유치원',library:'도서관',gym:'헬스장',parking:'주차장'};
+      // 네이버 결과 — 건물번호 일치하는 것만
+      const nd=naverRes.status==='fulfilled'?naverRes.value:null;
+      if(nd?.items){
+        const buildingNo=(roadAddr||jibunAddr).split(' ').pop();
+        nd.items.forEach(item=>{
+          const name=item.title.replace(/<[^>]*>/g,'');
+          const iAddr=item.roadAddress||item.address||'';
+          if(!buildingNo||!iAddr.includes(buildingNo))return;
+          if(seen.has(name))return;
+          const iLat=parseInt(item.mapy)/10000000;
+          const iLng=parseInt(item.mapx)/10000000;
+          if(Math.hypot(iLat-lat,iLng-lng)>0.0003)return;
+          seen.add(name);
+          places.push({name,category:item.category||'',lat:iLat,lng:iLng,tel:item.telephone||'',addr:iAddr});
+        });
+      }
 
-        if(places.length===0){
-          // 장소 없으면 Nominatim으로 fallback
-          const nr=await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&namedetails=1&addressdetails=1&accept-language=ko,en`);
-          const nd=await nr.json();
-          const placeName=(nd.namedetails&&(nd.namedetails['name:ko']||nd.namedetails.name))||nd.name||nd.display_name.split(',')[0];
-          const addr=nd.address;
-          const addrStr=[addr?.road||addr?.quarter,addr?.city||addr?.town].filter(Boolean).join(', ');
-          document.getElementById('mcc-name').textContent=placeName||addrStr||`${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-          document.getElementById('mcc-addr').innerHTML=addrStr?esc(addrStr):'';
-          card.dataset.name=placeName||addrStr||`${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-          footEl.style.display='flex';
+      // 4) 결과 표시
+      if(places.length===0){
+        const addr=roadAddr||jibunAddr||`${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+        document.getElementById('mcc-name').textContent=addr;
+        document.getElementById('mcc-addr').innerHTML='';
+        card.dataset.name=addr;
+        footEl.style.display='flex';
+        listEl.innerHTML='';
 
-        } else if(places.length===1){
-          // 장소 하나면 기존처럼 표시
-          const p=places[0];
-          const catLabel=catKo[p.category]||p.category||'';
-          document.getElementById('mcc-name').textContent=p.name;
-          document.getElementById('mcc-addr').innerHTML=catLabel?`<span style="font-family:var(--mono);font-size:9.5px;color:var(--accent);letter-spacing:.08em;text-transform:uppercase">${esc(catLabel)}</span>`:'';
-          card.dataset.name=p.name;
-          footEl.style.display='flex';
+      } else if(places.length===1){
+        const p=places[0];
+        const catRaw=p.category||'';
+        const catLabel=catKo[catRaw]||catRaw.split('>').pop()||'';
+        document.getElementById('mcc-name').textContent=p.name;
+        document.getElementById('mcc-addr').innerHTML=catLabel?`<span style="font-family:var(--mono);font-size:9.5px;color:var(--accent);letter-spacing:.08em;text-transform:uppercase">${esc(catLabel)}</span>`:'';
+        card.dataset.name=p.name; card.dataset.lat=p.lat; card.dataset.lng=p.lng;
+        footEl.style.display='flex';
+        listEl.innerHTML='';
 
-        } else {
-          // 장소 여러 개면 목록 표시
-          document.getElementById('mcc-name').textContent=`이 위치에 ${places.length}개의 장소`;
-          document.getElementById('mcc-addr').innerHTML='클릭해서 일정에 추가하세요';
-          footEl.style.display='none';
-          listEl.innerHTML=places.map(p=>{
-            const catLabel=catKo[p.category]||p.category||'';
-            return `<div class="mcc-item">
-              <div class="mcc-item-info">
-                <div class="mcc-item-name">${esc(p.name)}</div>
-                ${catLabel?`<div class="mcc-item-cat">${esc(catLabel)}</div>`:''}
-              </div>
-              <button class="mcc-item-add" onclick="addPlaceAsEvent(${p.lat},${p.lng},'${p.name.replace(/'/g,"\\u0027")}')">+ 추가</button>
-            </div>`;
-          }).join('');
-        }
-
-      }catch(err){
-        const coordStr=`${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-        document.getElementById('mcc-name').textContent=coordStr;
-        card.dataset.name=coordStr;
+      } else {
+        document.getElementById('mcc-name').textContent=`이 건물에 ${places.length}개 장소`;
+        document.getElementById('mcc-addr').innerHTML=roadAddr?esc(roadAddr):'';
+        footEl.style.display='none';
+        listEl.innerHTML=places.map(p=>{
+          const catRaw=p.category||'';
+          const catLabel=catKo[catRaw]||catRaw.split('>').pop()||'';
+          return `<div class="mcc-item">
+            <div class="mcc-item-info">
+              <div class="mcc-item-name">${esc(p.name)}</div>
+              ${catLabel?`<div class="mcc-item-cat">${esc(catLabel)}${p.tel?' · '+esc(p.tel):''}</div>`:''}
+            </div>
+            <button class="mcc-item-add" onclick="addPlaceAsEvent(${p.lat},${p.lng},'${p.name.replace(/'/g,'\\u0027')}')">+ 추가</button>
+          </div>`;
+        }).join('');
       }
     });
   } catch(e){ console.error('Naver map init error:',e); }
