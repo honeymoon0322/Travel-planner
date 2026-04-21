@@ -152,6 +152,26 @@ input,textarea,select{font-family:inherit;font-size:inherit;color:inherit;}
 .empty-day{text-align:center;padding:48px 24px;color:var(--muted);}
 .empty-day p{font-size:13px;margin-top:6px;}
 
+/* MAP SEARCH */
+.map-search{position:absolute;top:16px;left:50%;transform:translateX(-50%);width:380px;z-index:600;}
+.map-search-row{display:flex;background:var(--surface);border:1px solid var(--hairline-strong);border-radius:var(--r-md);box-shadow:var(--shadow-md);overflow:hidden;}
+.map-search-row input{flex:1;padding:11px 14px;font-size:13px;border:none;outline:none;color:var(--ink);}
+.map-search-row input::placeholder{color:var(--muted-2);}
+.map-search-btn{padding:0 16px;background:var(--ink);color:var(--bg);border:none;cursor:pointer;display:flex;align-items:center;transition:background .15s;}
+.map-search-btn:hover{background:var(--accent);}
+.map-search-btn svg{width:15px;height:15px;stroke-width:2;}
+.map-search-results{background:var(--surface);border:1px solid var(--hairline-strong);border-radius:var(--r-md);box-shadow:var(--shadow-md);margin-top:6px;overflow:hidden;display:none;max-height:280px;overflow-y:auto;}
+.map-search-results.show{display:block;}
+.sri{padding:11px 14px;cursor:pointer;border-bottom:1px solid var(--hairline);display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.sri:last-child{border-bottom:none;}
+.sri:hover{background:var(--surface-warm);}
+.sri-info{flex:1;min-width:0;}
+.sri-name{font-size:13px;font-weight:500;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sri-addr{font-size:11px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sri-add{flex-shrink:0;padding:5px 9px;border:1px solid var(--hairline-strong);border-radius:var(--r-sm);font-size:11px;font-weight:500;color:var(--ink-2);white-space:nowrap;}
+.sri-add:hover{background:var(--ink);color:var(--bg);border-color:var(--ink);}
+.sri-msg{padding:12px 14px;font-size:13px;color:var(--muted);}
+
 /* MAP */
 .map-panel{display:flex;flex-direction:column;background:#EEE8DA;flex:1;min-width:0;overflow:hidden;position:relative;}
 #map{flex:1;min-height:0;z-index:1;width:100%;}
@@ -304,6 +324,18 @@ input,textarea,select{font-family:inherit;font-size:inherit;color:inherit;}
     </aside>
     <section class="map-panel">
       <div id="map"></div>
+
+      <!-- Map Search -->
+      <div class="map-search" id="map-search">
+        <div class="map-search-row">
+          <input type="text" id="map-search-input" placeholder="장소 검색 (예: 경복궁, 도쿄 타워...)" autocomplete="off" onkeydown="if(event.key==='Enter')doMapSearch()">
+          <button class="map-search-btn" onclick="doMapSearch()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </button>
+        </div>
+        <div class="map-search-results" id="map-search-results"></div>
+      </div>
+
       <div class="key-overlay" id="key-overlay">
         <div class="key-card">
           <span class="badge">NAVER MAPS API</span>
@@ -711,6 +743,57 @@ function openInviteInput(){const url=prompt('공유받은 링크를 붙여넣어
 function showInviteModal(trip){pendingInvite=trip;document.getElementById('invite-title').textContent=trip.title;const total=trip.days.reduce((s,d)=>s+d.events.length,0);document.getElementById('invite-meta').textContent=`${trip.days.length}일 · ${total}개 일정 · ${trip.travelers||1}명`;openModal('modal-invite');}
 function acceptInvite(){if(!pendingInvite)return;const t={...pendingInvite,id:genId(),shared:true};trips.push(t);saveTrips();pendingInvite=null;closeModal('modal-invite');renderHomeScreen();openTrip(t.id);}
 
+// MAP SEARCH
+async function doMapSearch(){
+  const q=document.getElementById('map-search-input').value.trim();
+  if(!q)return;
+  const res=document.getElementById('map-search-results');
+  res.innerHTML='<div class="sri-msg">검색 중...</div>';
+  res.classList.add('show');
+  try{
+    const r=await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=6&accept-language=ko,en`);
+    const data=await r.json();
+    if(!data.length){res.innerHTML='<div class="sri-msg">검색 결과가 없어요. 더 구체적으로 검색해 보세요.</div>';return;}
+    res.innerHTML=data.map(item=>{
+      const name=item.display_name.split(',')[0];
+      const addr=item.display_name.split(',').slice(1,3).join(',').trim();
+      const lat=parseFloat(item.lat);const lng=parseFloat(item.lon);
+      return `<div class="sri" onclick="selectPlace(${lat},${lng})">
+        <div class="sri-info">
+          <div class="sri-name">${esc(name)}</div>
+          <div class="sri-addr">${esc(addr)}</div>
+        </div>
+        <button class="sri-add" onclick="event.stopPropagation();addPlaceAsEvent(${lat},${lng},'${esc(name).replace(/'/g,"&#39;")}')">+ 일정 추가</button>
+      </div>`;
+    }).join('');
+  }catch(e){res.innerHTML='<div class="sri-msg" style="color:#B8564F">검색 중 오류가 발생했어요.</div>';}
+}
+
+function selectPlace(lat,lng){
+  if(map&&typeof naver!=='undefined'){
+    map.panTo(new naver.maps.LatLng(lat,lng));
+    map.setZoom(16);
+  }
+  closeMapSearch();
+}
+
+function addPlaceAsEvent(lat,lng,name){
+  closeMapSearch();
+  openAddEvent();
+  setTimeout(()=>{
+    document.getElementById('f-locname').value=name;
+    document.getElementById('f-lat').value=lat;
+    document.getElementById('f-lng').value=lng;
+    if(document.getElementById('f-title').value==='')
+      document.getElementById('f-title').value=name;
+  },100);
+}
+
+function closeMapSearch(){
+  document.getElementById('map-search-results').classList.remove('show');
+  document.getElementById('map-search-input').value='';
+}
+
 // MODALS
 function openModal(id){document.getElementById(id).classList.add('open');}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
@@ -724,8 +807,19 @@ window.addEventListener('load',()=>{
   loadNaverScript(NAVER_KEY);
 });
 document.addEventListener('keydown',e=>{
-  if(e.key==='Escape'){['modal-new-trip','modal-event','modal-share','modal-invite'].forEach(id=>closeModal(id));if(!document.getElementById('detail-overlay').classList.contains('hidden'))closeDetail();}
+  if(e.key==='Escape'){
+    ['modal-new-trip','modal-event','modal-share','modal-invite'].forEach(id=>closeModal(id));
+    if(!document.getElementById('detail-overlay').classList.contains('hidden'))closeDetail();
+    closeMapSearch();
+  }
   if(e.key==='Enter'&&e.target&&e.target.id==='naver-key-input')applyNaverKey();
+});
+
+document.addEventListener('click',e=>{
+  const search=document.getElementById('map-search');
+  if(search&&!search.contains(e.target)){
+    document.getElementById('map-search-results').classList.remove('show');
+  }
 });
 </script>
 </body>
