@@ -153,8 +153,8 @@ input,textarea,select{font-family:inherit;font-size:inherit;color:inherit;}
 .empty-day p{font-size:13px;margin-top:6px;}
 
 /* MAP */
-.map-panel{position:relative;overflow:hidden;background:#EEE8DA;flex:1;min-width:0;}
-#map{position:absolute;inset:0;z-index:1;}
+.map-panel{display:flex;flex-direction:column;background:#EEE8DA;flex:1;min-width:0;overflow:hidden;position:relative;}
+#map{flex:1;min-height:0;z-index:1;width:100%;}
 .marker-pin{width:30px;height:30px;border-radius:50% 50% 50% 0;border:2px solid #fff;transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-md);cursor:pointer;}
 .marker-pin span{transform:rotate(45deg);color:#fff;font-family:var(--mono);font-size:11px;font-weight:500;}
 .marker-pin.active{transform:rotate(-45deg) scale(1.15);}
@@ -609,7 +609,24 @@ function applyNaverKey(){const v=document.getElementById('naver-key-input').valu
 function skipNaverKey(){document.getElementById('key-overlay').innerHTML=`<div class="key-card" style="text-align:center"><span class="badge">지도 비활성</span><h3 style="margin-top:12px">일정 관리 <em>모드</em></h3><p style="margin-top:8px;color:var(--muted);font-size:13px">지도 없이 타임라인에서 일정을 자유롭게 관리하세요.</p></div>`;}
 window.navermap_authFailure=function(){document.getElementById('key-overlay').innerHTML=`<div class="key-card"><span class="badge" style="color:#B8564F;background:rgba(184,86,79,.08)">인증 실패</span><h3 style="margin-top:12px">지도 <em>인증에 실패</em>했어요</h3><p style="margin-top:8px;color:var(--muted);font-size:13px">현재 도메인(<code style="font-family:var(--mono);font-size:11px;background:var(--surface-warm);padding:2px 5px;border-radius:3px">${location.hostname}</code>)이 NCP Application 허용 도메인에 등록되어 있는지 확인해 주세요.</p><div class="key-input-row" style="margin-top:14px"><input type="text" id="naver-key-input" placeholder="다른 Client ID 시도" autocomplete="off"><button class="btn btn-primary" onclick="applyNaverKey()">적용</button></div><span class="key-skip" onclick="skipNaverKey()">키 없이 계속하기 →</span></div>`;};
 function loadNaverScript(key){const s=document.createElement('script');s.src=`https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${encodeURIComponent(key)}`;s.async=true;s.onload=()=>{document.getElementById('key-overlay').classList.add('hidden');naverLoaded=true;if(currentTripId)initNaverMap();};s.onerror=()=>alert('네이버 지도 스크립트를 불러오지 못했습니다.');document.head.appendChild(s);}
-function initNaverMap(){if(typeof naver==='undefined')return;map=new naver.maps.Map('map',{center:new naver.maps.LatLng(37.5665,126.9780),zoom:12,mapTypeControl:false,zoomControl:true,zoomControlOptions:{position:naver.maps.Position.TOP_RIGHT,style:naver.maps.ZoomControlStyle.SMALL}});renderMapMarkers();}
+function initNaverMap(){
+  if(typeof naver==='undefined')return;
+  try {
+    map=new naver.maps.Map('map',{
+      center:new naver.maps.LatLng(37.5665,126.9780),
+      zoom:12,
+      mapTypeControl:false,
+      zoomControl:true,
+      zoomControlOptions:{position:naver.maps.Position.TOP_RIGHT,style:naver.maps.ZoomControlStyle.SMALL}
+    });
+    // 컨테이너 크기 재계산 강제 적용
+    naver.maps.Event.trigger(map,'resize');
+    map.autoResize();
+    renderMapMarkers();
+    // 한 번 더 (타일 렌더링 보장)
+    setTimeout(()=>{map&&map.autoResize();},200);
+  } catch(e) { console.error('Naver map init error:', e); }
+}
 function renderMapMarkers(){
   if(!map||typeof naver==='undefined')return;
   markers.forEach(m=>m.setMap(null));markers=[];
