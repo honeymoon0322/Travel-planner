@@ -792,10 +792,22 @@ function initNaverMap(){
 
       // 4) 결과 표시
       if(places.length===0){
-        const addr=roadAddr||jibunAddr||`${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-        document.getElementById('mcc-name').textContent=addr;
-        document.getElementById('mcc-addr').innerHTML='';
-        card.dataset.name=addr;
+        // Nominatim으로 장소명/주소 폴백
+        try{
+          const nr=await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&namedetails=1&addressdetails=1&accept-language=ko,en`);
+          const nd=await nr.json();
+          const placeName=(nd.namedetails&&(nd.namedetails['name:ko']||nd.namedetails.name))||nd.name||'';
+          const addr=nd.address;
+          const addrStr=[addr?.road||addr?.quarter,addr?.city||addr?.town].filter(Boolean).join(', ');
+          const display=placeName||(roadAddr||jibunAddr)||addrStr||`${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+          document.getElementById('mcc-name').textContent=display;
+          document.getElementById('mcc-addr').innerHTML=placeName&&(roadAddr||addrStr)?esc(roadAddr||addrStr):'';
+          card.dataset.name=display;
+        }catch(err){
+          const addr=roadAddr||jibunAddr||`${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+          document.getElementById('mcc-name').textContent=addr;
+          card.dataset.name=addr;
+        }
         footEl.style.display='flex';
         listEl.innerHTML='';
 
