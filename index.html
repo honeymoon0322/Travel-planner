@@ -737,15 +737,19 @@ function initNaverMap(){
       // 1) 네이버 역지오코딩 + nearby 검색 병렬 실행
       const [revGeo, naverNearby] = await Promise.allSettled([
         new Promise(resolve=>{
-          if(!naver.maps.Service){resolve({road:'',jibun:''});return;}
-          naver.maps.Service.reverseGeocode({
-            coords:new naver.maps.LatLng(lat,lng),
-            orders:[naver.maps.Service.OrderType.ROAD_ADDR,naver.maps.Service.OrderType.ADDR].join(',')
-          },function(status,response){
-            if(status!==naver.maps.Service.Status.ERROR&&response.v2)
-              resolve({road:response.v2.address.roadAddress||'',jibun:response.v2.address.jibunAddress||''});
-            else resolve({road:'',jibun:''});
-          });
+          try{
+            if(!naver.maps.Service){resolve({road:'',jibun:''});return;}
+            naver.maps.Service.reverseGeocode({
+              coords:new naver.maps.LatLng(lat,lng),
+              orders:[naver.maps.Service.OrderType.ROAD_ADDR,naver.maps.Service.OrderType.ADDR].join(',')
+            },function(status,response){
+              try{
+                if(status!==naver.maps.Service.Status.ERROR&&response&&response.v2&&response.v2.address)
+                  resolve({road:response.v2.address.roadAddress||'',jibun:response.v2.address.jibunAddress||''});
+                else resolve({road:'',jibun:''});
+              }catch(e){resolve({road:'',jibun:''});}
+            });
+          }catch(e){resolve({road:'',jibun:''});}
         }),
         fetch(`/api/search?nearby=1&x=${lng}&y=${lat}&radius=80`).then(r=>r.ok?r.json():null).catch(()=>null)
       ]);
