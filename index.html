@@ -713,13 +713,18 @@ input,textarea,select{font-family:inherit;font-size:inherit;color:inherit;}
 const NAVER_KEY = 'ms0oiff08d';
 const TYPE_LABELS = {flight:'항공편',transit:'교통편',lodging:'숙소',activity:'방문지',food:'식사'};
 const TYPE_COLORS = {flight:'#6B8CAE',transit:'#C08552',lodging:'#2A4A3A',activity:'#3A3833',food:'#B8564F'};
-const ICONS = {
-  flight:'\u003csvg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"\u003e\u003cpath d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/\u003e\u003c/svg\u003e',
-  transit:'\u003csvg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"\u003e\u003crect x="4" y="3" width="16" height="16" rx="2"/\u003e\u003cpath d="M4 11h16"/\u003e\u003ccircle cx="8" cy="15" r="1"/\u003e\u003ccircle cx="16" cy="15" r="1"/\u003e\u003c/svg\u003e',
-  lodging:'\u003csvg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"\u003e\u003cpath d="M3 22h18"/\u003e\u003cpath d="M5 22V6l7-3 7 3v16"/\u003e\u003cpath d="M9 22v-7h6v7"/\u003e\u003c/svg\u003e',
-  activity:'\u003csvg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"\u003e\u003ccircle cx="12" cy="10" r="3"/\u003e\u003cpath d="M12 2a8 8 0 0 0-8 8c0 6 8 12 8 12s8-6 8-12a8 8 0 0 0-8-8z"/\u003e\u003c/svg\u003e',
-  food:'\u003csvg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"\u003e\u003cpath d="M3 11h18M5 11V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v6M5 11v10h14V11"/\u003e\u003c/svg\u003e'
-};
+const ICONS = {};
+const TRANSIT_SVG = {};
+function initIcons(){
+  ['flight','transit','lodging','activity','food'].forEach(k=>{
+    const el=document.getElementById('icon-'+k);
+    ICONS[k]=el?el.outerHTML:'';
+  });
+  ['car','bus','train','flight','bicycle'].forEach(k=>{
+    const el=document.getElementById('icon-'+k);
+    TRANSIT_SVG[k]=el?el.outerHTML:'';
+  });
+}
 const BANNERS = ['banner-0','banner-1','banner-2','banner-3','banner-4','banner-5'];
 
 let trips = [];
@@ -840,13 +845,6 @@ const TRANSIT_ICONS={
   train:'🚂',
   flight:'✈️',
   bicycle:'🚲'
-};
-const TRANSIT_SVG={
-  car:'\u003csvg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"\u003e\u003cpath d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v9a2 2 0 0 1-2 2h-2"/\u003e\u003ccircle cx="7" cy="17" r="2"/\u003e\u003ccircle cx="17" cy="17" r="2"/\u003e\u003c/svg\u003e',
-  bus:'\u003csvg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"\u003e\u003crect x="2" y="3" width="20" height="16" rx="2"/\u003e\u003cpath d="M2 9h20M9 3v16M15 3v16"/\u003e\u003ccircle cx="6" cy="20" r="1"/\u003e\u003ccircle cx="18" cy="20" r="1"/\u003e\u003c/svg\u003e',
-  train:'\u003csvg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"\u003e\u003crect x="4" y="3" width="16" height="16" rx="2"/\u003e\u003cpath d="M4 11h16"/\u003e\u003ccircle cx="8" cy="15" r="1"/\u003e\u003ccircle cx="16" cy="15" r="1"/\u003e\u003cpath d="M8 19l-2 3M16 19l2 3"/\u003e\u003c/svg\u003e',
-  flight:'\u003csvg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"\u003e\u003cpath d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/\u003e\u003c/svg\u003e',
-  bicycle:'\u003csvg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"\u003e\u003ccircle cx="5" cy="17" r="3"/\u003e\u003ccircle cx="19" cy="17" r="3"/\u003e\u003cpath d="M5 17l5-10 2 3M15 7h2l2 4m-4 6h4m-9-3l4 3"/\u003e\u003c/svg\u003e'
 };
 const TRANSIT_LABELS={car:'자동차',bus:'버스',train:'기차',flight:'비행기',bicycle:'자전거'};
 
@@ -1162,7 +1160,8 @@ function renderDetail(ev){
         <div class="info-cell"><div class="k">체크아웃</div><div class="v">${esc(ev.checkoutDate||'—')} ${esc(ev.checkout||'')}</div></div>
         ${ev.lodgingBooking?`<div class="info-cell full" style="grid-column:1/-1"><div class="k">예약번호</div><div class="v mono">${esc(ev.lodgingBooking)}</div></div>`:''}
       </div></div>`;
-  }<div style="font-size:13px;font-weight:500">${esc(ev.location.name)}</div>${ev.location.address?`<div style="font-size:11px;color:var(--muted);margin-top:2px">${esc(ev.location.address)}</div>`:''}</div>`;
+  }
+  if(ev.location)html+=`<div class="detail-section"><div class="detail-label">장소</div><div style="font-size:13px;font-weight:500">${esc(ev.location.name)}</div>${ev.location.address?`<div style="font-size:11px;color:var(--muted);margin-top:2px">${esc(ev.location.address)}</div>`:''}</div>`;
   if(ev.notes)html+=`<div class="detail-section"><div class="detail-label">메모</div><div class="notes-text">${esc(ev.notes)}</div></div>`;
   document.getElementById('d-body').innerHTML=html;
   document.getElementById('detail-overlay').classList.remove('hidden');
@@ -1770,6 +1769,7 @@ function closeModal(id){document.getElementById(id).classList.remove('open');}
 
 // INIT
 window.addEventListener('load',()=>{
+  initIcons();
   loadTrips();
   loadFavorites();
   const shared=parseShareHash();
