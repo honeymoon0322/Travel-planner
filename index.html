@@ -715,7 +715,7 @@ function initNaverMap(){
     renderMapMarkers();
     setTimeout(()=>{map&&map.autoResize();},200);
 
-    // 지도 클릭 → Overpass(15m) + 네이버 주소 검색 병렬 실행
+    // 지도 클릭 → 네이버 nearby 검색으로 주변 장소 표시
     naver.maps.Event.addListener(map,'click',async function(e){
       const lat=e.coord.lat(), lng=e.coord.lng();
       clearSearchResultMarkers();
@@ -734,62 +734,45 @@ function initNaverMap(){
 
       const catKo={restaurant:'음식점',cafe:'카페',convenience:'편의점',school:'학교',hospital:'병원',pharmacy:'약국',bank:'은행',hotel:'호텔',supermarket:'마트',clothes:'의류',beauty:'미용',bar:'주점',fast_food:'패스트푸드',bakery:'베이커리',kindergarten:'유치원',library:'도서관',gym:'헬스장',parking:'주차장',office:'사무실',shop:'상점'};
 
-      // 1) 네이버 역지오코딩으로 도로명 주소 획득
-      let roadAddr='', jibunAddr='';
-      await new Promise(resolve=>{
-        if(!naver.maps.Service){resolve();return;}
-        naver.maps.Service.reverseGeocode({
-          coords:new naver.maps.LatLng(lat,lng),
-          orders:[naver.maps.Service.OrderType.ROAD_ADDR,naver.maps.Service.OrderType.ADDR].join(',')
-        },function(status,response){
-          if(status!==naver.maps.Service.Status.ERROR&&response.v2){
-            roadAddr=response.v2.address.roadAddress||'';
-            jibunAddr=response.v2.address.jibunAddress||'';
-          }
-          resolve();
-        });
-      });
-
-      // 2) Overpass(50m) + 네이버 nearby 검색 병렬 실행
-      const [overpassRes, naverRes] = await Promise.allSettled([
-        fetch(`/api/overpass?lat=${lat}&lng=${lng}&radius=50`).then(r=>r.ok?r.json():null).catch(()=>null),
+      // 1) 네이버 역지오코딩 + nearby 검색 병렬 실행
+      const [revGeo, naverNearby] = await Promise.allSettled([
+        new Promise(resolve=>{
+          if(!naver.maps.Service){resolve({road:'',jibun:''});return;}
+          naver.maps.Service.reverseGeocode({
+            coords:new naver.maps.LatLng(lat,lng),
+            orders:[naver.maps.Service.OrderType.ROAD_ADDR,naver.maps.Service.OrderType.ADDR].join(',')
+          },function(status,response){
+            if(status!==naver.maps.Service.Status.ERROR&&response.v2)
+              resolve({road:response.v2.address.roadAddress||'',jibun:response.v2.address.jibunAddress||''});
+            else resolve({road:'',jibun:''});
+          });
+        }),
         fetch(`/api/search?nearby=1&x=${lng}&y=${lat}&radius=80`).then(r=>r.ok?r.json():null).catch(()=>null)
       ]);
 
-      // 3) 결과 합치기 (중복 제거)
+      const roadAddr=revGeo.status==='fulfilled'?revGeo.value.road:'';
+      const jibunAddr=revGeo.status==='fulfilled'?revGeo.value.jibun:'';
+
+      // 2) 결과 정리
       const seen=new Set();
       const allPlaces=[];
-
-      const od=overpassRes.status==='fulfilled'?overpassRes.value:null;
-      if(od?.elements){
-        od.elements.forEach(el=>{
-          const name=el.tags&&(el.tags['name:ko']||el.tags.name);
-          if(!name||seen.has(name))return;
-          seen.add(name);
-          const eLat=el.lat||lat, eLng=el.lon||lng;
-          allPlaces.push({name,category:el.tags?.amenity||el.tags?.shop||el.tags?.tourism||'',lat:eLat,lng:eLng,tel:'',addr:'',dist:Math.hypot(eLat-lat,eLng-lng)*111000});
-        });
-      }
-
-      const nd=naverRes.status==='fulfilled'?naverRes.value:null;
-      if(nd?.items){
-        nd.items.forEach(item=>{
+      const naverData=naverNearby.status==='fulfilled'?naverNearby.value:null;
+      if(naverData?.items){
+        naverData.items.forEach(item=>{
           const name=item.title.replace(/<[^>]*>/g,'');
           if(seen.has(name))return;
           const iLat=parseInt(item.mapy)/10000000;
           const iLng=parseInt(item.mapx)/10000000;
-          const distM=Math.hypot(iLat-lat,iLng-lng)*111000;
-          if(distM>80)return;
+          const dist=Math.hypot(iLat-lat,iLng-lng)*111000;
+          if(dist>80)return;
           seen.add(name);
-          allPlaces.push({name,category:item.category||'',lat:iLat,lng:iLng,tel:item.telephone||'',addr:item.roadAddress||item.address||'',dist:distM});
+          allPlaces.push({name,category:item.category||'',lat:iLat,lng:iLng,tel:item.telephone||'',addr:item.roadAddress||item.address||'',dist});
         });
       }
-
       allPlaces.sort((a,b)=>a.dist-b.dist);
 
-      // 클릭한 가게(20m 이내 가장 가까운 것) vs 주변 가게
-      const primary=allPlaces.find(p=>p.dist<=20);
-      const nearby=allPlaces.filter(p=>p!==primary);
+      // 15m 이내 가장 가까운 게 클릭한 가게
+      const primary=allPlaces.find(p=>p.dist<=15);
 
       // 4) 결과 표시
       if(allPlaces.length===0){
