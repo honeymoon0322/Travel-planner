@@ -1420,7 +1420,6 @@ function openFavPanel(){
 }
 function closeFavPanel(){
   document.getElementById('fav-panel').classList.remove('show');
-  // 일반 장소 패널 모드로 복원
   const panel=document.getElementById('map-right-panel');
   if(panel.dataset.mode==='favorites'){
     panel.classList.remove('show');
@@ -1428,6 +1427,42 @@ function closeFavPanel(){
     document.getElementById('mrp-actions').style.display='flex';
   }
 }
+
+// 즐겨찾기 패널 드래그로 닫기
+(function initFavDrag(){
+  let startX=0, curX=0, dragging=false;
+  const getPanel=()=>document.getElementById('fav-panel');
+
+  function onStart(e){
+    const panel=getPanel();
+    if(!panel.classList.contains('show'))return;
+    startX=e.type==='touchstart'?e.touches[0].clientX:e.clientX;
+    curX=startX; dragging=true;
+    panel.style.transition='none';
+  }
+  function onMove(e){
+    if(!dragging)return;
+    curX=e.type==='touchmove'?e.touches[0].clientX:e.clientX;
+    const dx=Math.max(0,curX-startX); // 오른쪽으로만
+    getPanel().style.transform=`translateX(${dx}px)`;
+  }
+  function onEnd(){
+    if(!dragging)return;
+    dragging=false;
+    const panel=getPanel();
+    panel.style.transition='';
+    panel.style.transform='';
+    const dx=curX-startX;
+    if(dx>80) closeFavPanel(); // 80px 이상 드래그하면 닫기
+  }
+
+  document.addEventListener('mousedown',onStart);
+  document.addEventListener('mousemove',onMove);
+  document.addEventListener('mouseup',onEnd);
+  document.addEventListener('touchstart',onStart,{passive:true});
+  document.addEventListener('touchmove',onMove,{passive:true});
+  document.addEventListener('touchend',onEnd);
+})();
 
 function renderFavCats(){
   const el=document.getElementById('fav-cats');
@@ -1506,6 +1541,40 @@ function quickFavToggle(lat,lng,name,addr,btn){
 // MODALS
 function openModal(id){document.getElementById(id).classList.add('open');}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
+(function(){
+  let isDown=false, startX, scrollLeft;
+  document.addEventListener('DOMContentLoaded',()=>{});
+  // DOMContentLoaded 대신 이벤트 위임으로 처리
+  function initDragScroll(){
+    const el=document.getElementById('fav-cats');
+    if(!el||el._dragInit)return;
+    el._dragInit=true;
+    el.style.cursor='grab';
+    el.addEventListener('mousedown',e=>{
+      isDown=true; el.style.cursor='grabbing';
+      startX=e.pageX-el.offsetLeft; scrollLeft=el.scrollLeft;
+    });
+    el.addEventListener('mouseleave',()=>{isDown=false;el.style.cursor='grab';});
+    el.addEventListener('mouseup',()=>{isDown=false;el.style.cursor='grab';});
+    el.addEventListener('mousemove',e=>{
+      if(!isDown)return; e.preventDefault();
+      const x=e.pageX-el.offsetLeft;
+      el.scrollLeft=scrollLeft-(x-startX);
+    });
+    // 터치 지원
+    el.addEventListener('touchstart',e=>{startX=e.touches[0].pageX-el.offsetLeft;scrollLeft=el.scrollLeft;},{passive:true});
+    el.addEventListener('touchmove',e=>{
+      const x=e.touches[0].pageX-el.offsetLeft;
+      el.scrollLeft=scrollLeft-(x-startX);
+    },{passive:true});
+  }
+  // renderFavCats 호출 후 초기화되도록 MutationObserver 사용
+  const observer=new MutationObserver(()=>initDragScroll());
+  window.addEventListener('load',()=>{
+    const target=document.getElementById('fav-cats');
+    if(target)observer.observe(target,{childList:true});
+  });
+})();
 
 // INIT
 window.addEventListener('load',()=>{
