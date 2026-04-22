@@ -204,11 +204,16 @@ input,textarea,select{font-family:inherit;font-size:inherit;color:inherit;}
 .mrp-item-name{font-size:13px;font-weight:500;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .mrp-item-sub{font-size:11px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .mrp-item-btns{display:flex;gap:4px;flex-shrink:0;}
-.mrp-item-btns button{padding:4px 8px;border:1px solid var(--hairline-strong);border-radius:var(--r-sm);font-size:11px;font-weight:500;color:var(--ink-2);}
+.mrp-item-btns button{padding:5px 9px;border:1px solid var(--hairline-strong);border-radius:var(--r-sm);font-size:11px;font-weight:500;color:var(--ink-2);transition:all .15s;}
 .mrp-item-btns button:hover{background:var(--ink);color:#fff;border-color:var(--ink);}
-.mrp-item-btns .fav-btn{color:var(--warm);}
+.mrp-item-btns .fav-btn{color:var(--warm);border-color:rgba(192,133,82,.3);}
 .mrp-item-btns .fav-btn:hover{background:var(--warm);color:#fff;border-color:var(--warm);}
 .mrp-item-btns .fav-btn.active{background:var(--warm);color:#fff;border-color:var(--warm);}
+#mrp-fav-btn.saved{background:var(--warm);color:#fff;border-color:var(--warm);}
+.fav-item-btns button{width:28px;height:28px;border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;color:var(--muted);border:1px solid var(--hairline);transition:all .15s;}
+.fav-item-btns button:hover{background:#B8564F;color:#fff;border-color:#B8564F;}
+.fav-item-btns button.add-btn:hover{background:var(--accent);color:#fff;border-color:var(--accent);}
+.fav-item-btns button svg{width:13px;height:13px;stroke-width:1.75;}
 
 /* ====== FAVORITES ====== */
 .fav-panel{position:absolute;top:0;left:0;right:0;bottom:0;background:var(--surface);z-index:900;display:flex;flex-direction:column;transform:translateX(-100%);transition:transform .3s cubic-bezier(.2,.8,.2,1);}
@@ -231,8 +236,9 @@ input,textarea,select{font-family:inherit;font-size:inherit;color:inherit;}
 .fav-item-name{font-size:13px;font-weight:500;color:var(--ink);}
 .fav-item-cat{font-size:11px;color:var(--muted);margin-top:2px;}
 .fav-item-btns{display:flex;gap:4px;}
-.fav-item-btns button{width:28px;height:28px;border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;color:var(--muted);border:1px solid var(--hairline);}
-.fav-item-btns button:hover{background:var(--hairline);color:var(--ink);}
+.fav-item-btns button{width:28px;height:28px;border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;color:var(--muted);border:1px solid var(--hairline);transition:all .15s;}
+.fav-item-btns button.add-btn:hover{background:var(--accent);color:#fff;border-color:var(--accent);}
+.fav-item-btns button.del-btn:hover{background:#B8564F;color:#fff;border-color:#B8564F;}
 .fav-item-btns button svg{width:13px;height:13px;stroke-width:1.75;}
 .fav-empty{text-align:center;padding:48px 24px;color:var(--muted);font-size:13px;}
 
@@ -794,6 +800,7 @@ function initNaverMap(){
     naver.maps.Event.trigger(map,'resize');
     map.autoResize();
     renderMapMarkers();
+    renderFavMapMarkers();
     setTimeout(()=>{map&&map.autoResize();},200);
 
     // 지도 클릭 → 네이버 nearby 검색으로 주변 장소 표시
@@ -856,6 +863,27 @@ function initNaverMap(){
         });
       }
       allPlaces.sort((a,b)=>a.dist-b.dist);
+
+      // 결과 없으면 주소로 재검색 시도
+      if(allPlaces.length===0 && (roadAddr||jibunAddr)){
+        try{
+          const r3=await fetch(`/api/search?q=${encodeURIComponent(roadAddr||jibunAddr)}&x=${lng}&y=${lat}&radius=200`);
+          if(r3.ok){
+            const d3=await r3.json();
+            (d3.items||[]).forEach(item=>{
+              const name=item.title.replace(/<[^>]*>/g,'');
+              if(seen.has(name))return;
+              const iLat=parseInt(item.mapy)/10000000;
+              const iLng=parseInt(item.mapx)/10000000;
+              const dist=Math.hypot(iLat-lat,iLng-lng)*111000;
+              if(dist>200)return;
+              seen.add(name);
+              allPlaces.push({name,category:item.category||'',lat:iLat,lng:iLng,tel:item.telephone||'',addr:item.roadAddress||item.address||'',dist});
+            });
+            allPlaces.sort((a,b)=>a.dist-b.dist);
+          }
+        }catch(e){}
+      }
 
       const renderPlaceItem=(p)=>{
         const cl=catKo[p.category||'']||(p.category||'').split('>').pop()||'';
@@ -1152,14 +1180,66 @@ function selectPlace(lat,lng,name,addr,category,tel){
   if(map&&typeof naver!=='undefined'){
     map.panTo(new naver.maps.LatLng(lat,lng));
     map.setZoom(17);
+    showSearchPin(lat,lng);
   }
-  const card=document.getElementById('map-click-card');
-  const catEl=category?`<span style="font-family:var(--mono);font-size:9.5px;color:var(--accent);letter-spacing:.08em;text-transform:uppercase;">${esc((category||'').split('>').pop())}</span> · `:'';
-  document.getElementById('mcc-name').textContent=name||`${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-  document.getElementById('mcc-addr').innerHTML=(catEl||'')+(addr?esc(addr):'')+(tel?` · ${esc(tel)}`:'');
-  card.dataset.lat=lat;card.dataset.lng=lng;card.dataset.name=name||addr||'검색 결과';
-  card.classList.add('show');
   closeMapSearch();
+
+  // 오른쪽 패널에 표시
+  const panel=document.getElementById('map-right-panel');
+  const catKo={restaurant:'음식점',cafe:'카페',convenience:'편의점',school:'학교',hospital:'병원',pharmacy:'약국',bank:'은행',hotel:'호텔',supermarket:'마트',clothes:'의류',beauty:'미용',bar:'주점',fast_food:'패스트푸드',bakery:'베이커리'};
+  const catRaw=(category||'').split('>').pop();
+  const catLabel=catKo[catRaw]||catRaw||'';
+  document.getElementById('mrp-name').textContent=name||'검색 결과';
+  document.getElementById('mrp-addr').innerHTML=
+    (catLabel?`<span style="font-family:var(--mono);font-size:9.5px;color:var(--accent);letter-spacing:.08em;text-transform:uppercase">${esc(catLabel)}</span>${addr?' · ':''}`:'') +
+    (addr?esc(addr):'') + (tel?' · '+esc(tel):'');
+  panel.dataset.lat=lat; panel.dataset.lng=lng;
+  panel.dataset.name=name||'검색 결과';
+  panel.dataset.addr=addr||'';
+  panel.classList.add('show');
+  updateFavBtn(name||'');
+  document.getElementById('mrp-nearby-head').style.display='none';
+  document.getElementById('mrp-list').innerHTML='';
+
+  // 주변 장소 비동기 로드
+  loadNearbyForPanel(lat,lng,name);
+}
+
+async function loadNearbyForPanel(lat,lng,primaryName){
+  const catKo={restaurant:'음식점',cafe:'카페',convenience:'편의점',school:'학교',hospital:'병원',pharmacy:'약국',bank:'은행',hotel:'호텔',supermarket:'마트',clothes:'의류',beauty:'미용',bar:'주점',fast_food:'패스트푸드',bakery:'베이커리',kindergarten:'유치원',library:'도서관',gym:'헬스장',parking:'주차장'};
+  try{
+    const r=await fetch(`/api/search?nearby=1&x=${lng}&y=${lat}&radius=200`);
+    if(!r.ok)return;
+    const d=await r.json();
+    const others=(d.items||[]).map(item=>({
+      name:item.title.replace(/<[^>]*>/g,''),
+      category:item.category||'',
+      lat:parseInt(item.mapy)/10000000,
+      lng:parseInt(item.mapx)/10000000,
+      tel:item.telephone||'',
+      addr:item.roadAddress||item.address||'',
+      dist:Math.hypot(parseInt(item.mapy)/10000000-lat,parseInt(item.mapx)/10000000-lng)*111000
+    })).filter(p=>p.name!==primaryName&&p.dist<=200).sort((a,b)=>a.dist-b.dist);
+    if(others.length>0){
+      const nearbyHead=document.getElementById('mrp-nearby-head');
+      nearbyHead.style.display='block';
+      nearbyHead.textContent=`주변 장소 ${others.length}개`;
+      document.getElementById('mrp-list').innerHTML=others.map(p=>{
+        const cl=catKo[p.category||'']||(p.category||'').split('>').pop()||'';
+        const favActive=isFav(p.name);
+        return `<div class="mrp-item">
+          <div class="mrp-item-info">
+            <div class="mrp-item-name">${esc(p.name)}</div>
+            <div class="mrp-item-sub">${[cl,Math.round(p.dist)+'m',p.tel].filter(Boolean).join(' · ')}</div>
+          </div>
+          <div class="mrp-item-btns">
+            <button class="fav-btn${favActive?' active':''}" onclick="quickFavToggle(${p.lat},${p.lng},'${p.name.replace(/'/g,'\\u0027')}','${p.addr.replace(/'/g,'\\u0027')}',this)">★</button>
+            <button onclick="addPlaceAsEvent(${p.lat},${p.lng},'${p.name.replace(/'/g,'\\u0027')}')">+ 추가</button>
+          </div>
+        </div>`;
+      }).join('');
+    }
+  }catch(e){}
 }
 
 function addPlaceAsEvent(lat,lng,name){
@@ -1204,27 +1284,69 @@ function addClickLocationAsEvent(){
 
 // ====== FAVORITES ======
 let favorites=[];
-let favCategories=[];
+let favCategories=[];  // [{name, color}]
 let pendingFavPlace=null;
 let activeFavCat='전체';
+let favMarkers=[];
+
+const FAV_COLORS=['#E85D4A','#E8A23A','#4CAF50','#2196F3','#9C27B0','#FF5722','#00BCD4','#607D8B'];
 
 function loadFavorites(){
   try{favorites=JSON.parse(localStorage.getItem('wayfarer_favs')||'[]');}catch(e){favorites=[];}
-  try{favCategories=JSON.parse(localStorage.getItem('wayfarer_fav_cats')||'["맛집","카페","관광지"]');}catch(e){favCategories=["맛집","카페","관광지"];}
+  try{
+    const raw=JSON.parse(localStorage.getItem('wayfarer_fav_cats')||'null');
+    if(Array.isArray(raw)){
+      // 구버전 string 배열이면 변환
+      if(typeof raw[0]==='string') favCategories=raw.map((n,i)=>({name:n,color:FAV_COLORS[i%FAV_COLORS.length]}));
+      else favCategories=raw;
+    } else {
+      favCategories=[{name:'맛집',color:'#E85D4A'},{name:'카페',color:'#E8A23A'},{name:'관광지',color:'#4CAF50'}];
+    }
+  }catch(e){favCategories=[{name:'맛집',color:'#E85D4A'},{name:'카페',color:'#E8A23A'},{name:'관광지',color:'#4CAF50'}];}
 }
+
 function saveFavorites(){
-  try{localStorage.setItem('wayfarer_favs',JSON.stringify(favorites));localStorage.setItem('wayfarer_fav_cats',JSON.stringify(favCategories));}catch(e){}
+  try{
+    localStorage.setItem('wayfarer_favs',JSON.stringify(favorites));
+    localStorage.setItem('wayfarer_fav_cats',JSON.stringify(favCategories));
+  }catch(e){}
 }
+
+function getCatColor(catName){
+  const cat=favCategories.find(c=>c.name===catName);
+  return cat?cat.color:'#C08552';
+}
+
 function isFav(name){return favorites.some(f=>f.name===name);}
+
+function renderFavMapMarkers(){
+  favMarkers.forEach(m=>m.setMap(null)); favMarkers=[];
+  if(!map||typeof naver==='undefined')return;
+  favorites.forEach(f=>{
+    const color=getCatColor(f.cat);
+    const m=new naver.maps.Marker({
+      position:new naver.maps.LatLng(f.lat,f.lng),map,
+      icon:{
+        content:`<div style="background:${color};color:#fff;font-size:11px;padding:3px 7px;border-radius:6px;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.25);white-space:nowrap;cursor:pointer">★ ${esc(f.name.length>8?f.name.slice(0,8)+'…':f.name)}</div>`,
+        anchor:new naver.maps.Point(0,20)
+      },
+      zIndex:750
+    });
+    naver.maps.Event.addListener(m,'click',()=>{
+      selectPlace(f.lat,f.lng,f.name,f.addr,'','');
+    });
+    favMarkers.push(m);
+  });
+}
 
 function toggleFavFromPanel(){
   const panel=document.getElementById('map-right-panel');
   const place={name:panel.dataset.name,lat:parseFloat(panel.dataset.lat),lng:parseFloat(panel.dataset.lng),addr:panel.dataset.addr||''};
-  if(!place.name)return;
+  if(!place.name||place.name===`${place.lat.toFixed(5)}, ${place.lng.toFixed(5)}`)return;
   if(isFav(place.name)){
     favorites=favorites.filter(f=>f.name!==place.name);
-    saveFavorites();
-    updateFavBtn(place.name);
+    saveFavorites(); renderFavMapMarkers(); updateFavBtn(place.name);
+    if(document.getElementById('fav-panel').classList.contains('show'))renderFavList();
   } else {
     pendingFavPlace=place;
     openSaveFavModal();
@@ -1234,30 +1356,31 @@ function toggleFavFromPanel(){
 function openSaveFavModal(){
   const el=document.getElementById('save-fav-cats');
   el.innerHTML=favCategories.map(cat=>`
-    <button class="btn btn-outline" style="justify-content:flex-start;width:100%;" onclick="saveFavWithCat('${esc(cat)}')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-      ${esc(cat)}
+    <button class="btn btn-outline" style="justify-content:flex-start;width:100%;gap:8px;" onclick="saveFavWithCat('${esc(cat.name)}')">
+      <span style="width:12px;height:12px;border-radius:50%;background:${cat.color};flex-shrink:0;display:inline-block"></span>
+      ${esc(cat.name)}
     </button>`).join('');
   openModal('modal-save-fav');
 }
 
-function saveFavWithCat(cat){
+function saveFavWithCat(catName){
   if(!pendingFavPlace)return;
-  favorites.push({...pendingFavPlace,cat,savedAt:Date.now()});
-  saveFavorites();
-  pendingFavPlace=null;
+  favorites.push({...pendingFavPlace,cat:catName,savedAt:Date.now()});
+  saveFavorites(); pendingFavPlace=null;
   closeModal('modal-save-fav');
+  renderFavMapMarkers();
   updateFavBtn(document.getElementById('map-right-panel').dataset.name);
-  renderFavList();
+  if(document.getElementById('fav-panel').classList.contains('show'))renderFavList();
 }
 
 function updateFavBtn(name){
-  const btn=document.getElementById('mrp-fav-btn');
-  if(!btn)return;
+  const btn=document.getElementById('mrp-fav-btn');if(!btn)return;
   const saved=isFav(name);
-  btn.style.background=saved?'var(--warm)':'';
+  const cat=saved?favorites.find(f=>f.name===name):null;
+  const color=cat?getCatColor(cat.cat):'';
+  btn.style.background=saved?color:'';
   btn.style.color=saved?'#fff':'';
-  btn.style.borderColor=saved?'var(--warm)':'';
+  btn.style.borderColor=saved?color:'';
   btn.querySelector('svg').setAttribute('fill',saved?'currentColor':'none');
 }
 
@@ -1270,28 +1393,28 @@ function openAddCatModal(){
 function addFavCategory(){
   const name=document.getElementById('cat-name-input').value.trim();
   if(!name){alert('카테고리 이름을 입력해 주세요.');return;}
-  if(!favCategories.includes(name))favCategories.push(name);
-  saveFavorites();
-  closeModal('modal-add-cat');
-  renderFavCats();
-  renderFavList();
+  if(favCategories.find(c=>c.name===name)){alert('이미 있는 카테고리예요.');return;}
+  const color=FAV_COLORS[favCategories.length%FAV_COLORS.length];
+  favCategories.push({name,color});
+  saveFavorites(); closeModal('modal-add-cat');
+  renderFavCats(); renderFavList();
   if(pendingFavPlace)openSaveFavModal();
 }
 
 function openFavPanel(){
-  renderFavCats();
-  renderFavList();
+  renderFavCats(); renderFavList();
   document.getElementById('fav-panel').classList.add('show');
 }
-function closeFavPanel(){
-  document.getElementById('fav-panel').classList.remove('show');
-}
+function closeFavPanel(){document.getElementById('fav-panel').classList.remove('show');}
 
 function renderFavCats(){
   const el=document.getElementById('fav-cats');
   el.innerHTML=[
     `<span class="fav-cat-chip ${activeFavCat==='전체'?'active':''}" onclick="setFavCat('전체')">전체</span>`,
-    ...favCategories.map(c=>`<span class="fav-cat-chip ${activeFavCat===c?'active':''}" onclick="setFavCat('${esc(c)}')">${esc(c)}</span>`),
+    ...favCategories.map(c=>`
+      <span class="fav-cat-chip ${activeFavCat===c.name?'active':''}" style="${activeFavCat===c.name?`background:${c.color};border-color:${c.color};color:#fff`:''}" onclick="setFavCat('${esc(c.name)}')">
+        <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${c.color};margin-right:4px;vertical-align:middle"></span>${esc(c.name)}
+      </span>`),
     `<span class="fav-cat-chip add-cat" onclick="openAddCatModal()">+ 카테고리 추가</span>`
   ].join('');
 }
@@ -1302,41 +1425,43 @@ function renderFavList(){
   const el=document.getElementById('fav-list');
   const filtered=activeFavCat==='전체'?favorites:favorites.filter(f=>f.cat===activeFavCat);
   if(filtered.length===0){
-    el.innerHTML=`<div class="fav-empty">${activeFavCat==='전체'?'아직 즐겨찾기가 없어요.':activeFavCat+' 카테고리가 비어있어요.'}</div>`;
+    el.innerHTML=`<div class="fav-empty">${activeFavCat==='전체'?'아직 즐겨찾기가 없어요.<br><small style="font-size:12px;margin-top:4px;display:block">지도에서 ★ 버튼을 눌러 저장해보세요</small>':esc(activeFavCat)+' 카테고리가 비어있어요.'}</div>`;
     return;
   }
-  el.innerHTML=filtered.map(f=>`
-    <div class="fav-item">
-      <div class="fav-item-icon"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
+  el.innerHTML=filtered.map(f=>{
+    const color=getCatColor(f.cat);
+    return `<div class="fav-item">
+      <div class="fav-item-icon" style="background:${color}22"><svg viewBox="0 0 24 24" fill="${color}" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
       <div class="fav-item-info">
         <div class="fav-item-name">${esc(f.name)}</div>
-        <div class="fav-item-cat">${esc(f.cat||'')}${f.addr?' · '+esc(f.addr.split(' ').slice(-3).join(' ')):''}</div>
+        <div class="fav-item-cat" style="color:${color}">${esc(f.cat||'')}${f.addr?' · '+esc(f.addr.split(' ').slice(-3).join(' ')):''}</div>
       </div>
       <div class="fav-item-btns">
-        <button title="일정 추가" onclick="addPlaceAsEvent(${f.lat},${f.lng},'${f.name.replace(/'/g,'\\u0027')}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
-        <button title="삭제" onclick="removeFav('${f.name.replace(/'/g,'\\u0027')}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/></svg></button>
+        <button class="add-btn" title="일정 추가" onclick="addPlaceAsEvent(${f.lat},${f.lng},'${f.name.replace(/'/g,'\\u0027')}')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+        <button class="del-btn" title="삭제" onclick="removeFav(this,'${f.name.replace(/'/g,'\\u0027')}')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+        </button>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
-function removeFav(name){
+function removeFav(btn,name){
   favorites=favorites.filter(f=>f.name!==name);
-  saveFavorites();
-  renderFavList();
-  updateFavBtn(document.getElementById('map-right-panel').dataset.name);
+  saveFavorites(); renderFavMapMarkers(); renderFavList();
+  updateFavBtn(document.getElementById('map-right-panel').dataset.name||'');
 }
 
-function favItemBtn(lat,lng,name){
-  return `<button class="mrp-item-btns fav-btn${isFav(name)?' active':''}" onclick="quickFavToggle(${lat},${lng},'${name.replace(/'/g,'\\u0027')}',this)" title="즐겨찾기">★</button>`;
-}
-
-function quickFavToggle(lat,lng,name,btn){
+function quickFavToggle(lat,lng,name,addr,btn){
   if(isFav(name)){
     favorites=favorites.filter(f=>f.name!==name);
-    saveFavorites();
+    saveFavorites(); renderFavMapMarkers();
     btn.classList.remove('active');
+    updateFavBtn(document.getElementById('map-right-panel').dataset.name||'');
   } else {
-    pendingFavPlace={name,lat,lng,addr:''};
+    pendingFavPlace={name,lat,lng,addr};
     openSaveFavModal();
   }
 }
