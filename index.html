@@ -190,18 +190,38 @@ input,textarea,select{font-family:inherit;font-size:inherit;color:inherit;}
 .mcc-close{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--muted);flex-shrink:0;}
 .mcc-close:hover{background:var(--hairline);color:var(--ink);}
 .mcc-close svg{width:13px;height:13px;stroke-width:2;}
-.mcc-list{max-height:240px;overflow-y:auto;border-top:1px solid var(--hairline);}
-.mcc-list:empty{display:none;}
-.mcc-item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 16px;border-bottom:1px solid var(--hairline);cursor:pointer;transition:background .15s;}
+/* Map click card - wider with side panel */
+.map-click-card{position:absolute;bottom:24px;left:50%;transform:translateX(-50%) translateY(140%);background:var(--surface);border:1px solid var(--hairline-strong);border-radius:var(--r-lg);box-shadow:var(--shadow-lg);z-index:800;display:flex;flex-direction:row;transition:transform .3s cubic-bezier(.2,.8,.2,1);overflow:hidden;max-height:420px;}
+.map-click-card.show{transform:translateX(-50%) translateY(0);}
+
+/* Main info panel */
+.mcc-main{width:320px;flex-shrink:0;display:flex;flex-direction:column;}
+.mcc-head{padding:17px 18px 12px;border-bottom:1px solid var(--hairline);position:relative;display:flex;align-items:flex-start;gap:10px;}
+.mcc-icon{width:34px;height:34px;border-radius:50%;background:rgba(42,74,58,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.mcc-icon svg{width:15px;height:15px;stroke:var(--accent);stroke-width:2;}
+.mcc-info{flex:1;min-width:0;}
+.mcc-name{font-size:14px;font-weight:600;color:var(--ink);line-height:1.3;}
+.mcc-addr{font-size:11.5px;color:var(--muted);margin-top:3px;line-height:1.4;}
+.mcc-close{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--muted);flex-shrink:0;}
+.mcc-close:hover{background:var(--hairline);color:var(--ink);}
+.mcc-close svg{width:12px;height:12px;stroke-width:2;}
+.mcc-foot{padding:12px 16px;display:flex;gap:8px;background:var(--surface-warm);border-top:1px solid var(--hairline);margin-top:auto;}
+.mcc-foot .btn{flex:1;justify-content:center;font-size:12.5px;padding:10px;}
+
+/* Side panel for nearby places */
+.mcc-side{width:280px;border-left:1px solid var(--hairline);display:flex;flex-direction:column;background:var(--surface-warm);overflow:hidden;}
+.mcc-side-head{padding:10px 14px;border-bottom:1px solid var(--hairline);font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:500;flex-shrink:0;}
+.mcc-list{flex:1;overflow-y:auto;}
+.mcc-list::-webkit-scrollbar{width:4px;}
+.mcc-list::-webkit-scrollbar-thumb{background:var(--hairline-strong);border-radius:4px;}
+.mcc-item{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 14px;border-bottom:1px solid var(--hairline);cursor:pointer;transition:background .15s;background:var(--surface);}
 .mcc-item:last-child{border-bottom:none;}
 .mcc-item:hover{background:var(--surface-warm);}
 .mcc-item-info{flex:1;min-width:0;}
-.mcc-item-name{font-size:13px;font-weight:500;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.mcc-item-cat{font-family:var(--mono);font-size:9.5px;color:var(--accent);letter-spacing:.08em;text-transform:uppercase;margin-top:2px;}
-.mcc-item-add{flex-shrink:0;padding:4px 8px;border:1px solid var(--hairline-strong);border-radius:var(--r-sm);font-size:11px;font-weight:500;color:var(--ink-2);}
+.mcc-item-name{font-size:12.5px;font-weight:500;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mcc-item-cat{font-size:10.5px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mcc-item-add{flex-shrink:0;padding:4px 8px;border:1px solid var(--hairline-strong);border-radius:var(--r-sm);font-size:11px;font-weight:500;color:var(--ink-2);white-space:nowrap;}
 .mcc-item-add:hover{background:var(--ink);color:#fff;border-color:var(--ink);}
-.mcc-foot{padding:10px 16px;display:flex;gap:8px;background:var(--surface-warm);}
-.mcc-foot .btn{flex:1;justify-content:center;font-size:12.5px;padding:9px;}
 
 /* MAP */
 .map-panel{display:flex;flex-direction:column;background:#EEE8DA;flex:1;min-width:0;overflow:hidden;position:relative;}
@@ -369,21 +389,27 @@ input,textarea,select{font-family:inherit;font-size:inherit;color:inherit;}
 
       <!-- Map click info card -->
       <div class="map-click-card" id="map-click-card">
-        <div class="mcc-head">
-          <div class="mcc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 0-8 8c0 6 8 12 8 12s8-6 8-12a8 8 0 0 0-8-8z"/></svg></div>
-          <div class="mcc-info">
-            <div class="mcc-name" id="mcc-name">장소 정보 불러오는 중...</div>
-            <div class="mcc-addr" id="mcc-addr"></div>
+        <!-- 메인 패널: 장소명 + 일정 추가 -->
+        <div class="mcc-main">
+          <div class="mcc-head">
+            <div class="mcc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 0-8 8c0 6 8 12 8 12s8-6 8-12a8 8 0 0 0-8-8z"/></svg></div>
+            <div class="mcc-info">
+              <div class="mcc-name" id="mcc-name">장소 정보 불러오는 중...</div>
+              <div class="mcc-addr" id="mcc-addr"></div>
+            </div>
+            <button class="mcc-close" onclick="closeMapClickCard()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
           </div>
-          <button class="mcc-close" onclick="closeMapClickCard()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+          <div class="mcc-foot" id="mcc-foot">
+            <button class="btn btn-primary" onclick="addClickLocationAsEvent()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              일정에 추가
+            </button>
+          </div>
         </div>
-        <!-- 복수 장소 목록 -->
-        <div class="mcc-list" id="mcc-list"></div>
-        <div class="mcc-foot" id="mcc-foot">
-          <button class="btn btn-primary" onclick="addClickLocationAsEvent()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            일정에 추가
-          </button>
+        <!-- 사이드 패널: 주변 장소 목록 -->
+        <div class="mcc-side" id="mcc-side" style="display:none;">
+          <div class="mcc-side-head" id="mcc-side-head">주변 장소</div>
+          <div class="mcc-list" id="mcc-list"></div>
         </div>
       </div>
 
@@ -724,10 +750,13 @@ function initNaverMap(){
 
       const card=document.getElementById('map-click-card');
       const listEl=document.getElementById('mcc-list');
+      const sideEl=document.getElementById('mcc-side');
+      const sideHeadEl=document.getElementById('mcc-side-head');
       const footEl=document.getElementById('mcc-foot');
       document.getElementById('mcc-name').textContent='장소 정보 불러오는 중...';
       document.getElementById('mcc-addr').innerHTML='';
       listEl.innerHTML='';
+      sideEl.style.display='none';
       footEl.style.display='flex';
       card.dataset.lat=lat; card.dataset.lng=lng; card.dataset.name='';
       card.classList.add('show');
@@ -797,23 +826,23 @@ function initNaverMap(){
           card.dataset.name=addr;
         }
         footEl.style.display='flex';
+        sideEl.style.display='none';
         listEl.innerHTML='';
 
       } else if(primary){
-        // 클릭한 가게 감지됨 → 헤더에 크게 표시
+        // 클릭한 가게 감지됨
         const catRaw=primary.category||'';
         const catLabel=catKo[catRaw]||catRaw.split('>').pop()||'';
         document.getElementById('mcc-name').textContent=primary.name;
         document.getElementById('mcc-addr').innerHTML=
-          (catLabel?`<span style="font-family:var(--mono);font-size:9.5px;color:var(--accent);letter-spacing:.08em;text-transform:uppercase">${esc(catLabel)}</span> · `:'') +
-          (primary.addr?esc(primary.addr.split(' ').slice(-3).join(' '))+' · ':'')+
-          (primary.tel?esc(primary.tel)+' · ':'')+
-          `<span style="color:var(--muted-2)">${Math.round(primary.dist)}m</span>`;
+          (catLabel?`<span style="font-family:var(--mono);font-size:9.5px;color:var(--accent);letter-spacing:.08em;text-transform:uppercase">${esc(catLabel)}</span>`:'') +
+          (primary.addr?' · '+esc(primary.addr.split(' ').slice(-3).join(' ')):'') +
+          (primary.tel?' · '+esc(primary.tel):'');
         card.dataset.name=primary.name; card.dataset.lat=primary.lat; card.dataset.lng=primary.lng;
         footEl.style.display='flex';
         removeSearchPin(); showSearchPin(primary.lat,primary.lng);
 
-        // primary 제외 나머지 + 항상 주소로 2차 검색해서 합치기
+        // 사이드 패널에 주변 가게 표시
         const otherFromAll=allPlaces.filter(p=>p.name!==primary.name);
         const seen2=new Set(otherFromAll.map(p=>p.name));
         seen2.add(primary.name);
@@ -821,7 +850,7 @@ function initNaverMap(){
         const searchQuery=primary.addr||(roadAddr||jibunAddr);
         if(searchQuery){
           try{
-            const nr=await fetch(`/api/search?q=${encodeURIComponent(searchQuery)}&x=${lng}&y=${lat}&radius=100`);
+            const nr=await fetch(`/api/search?q=${encodeURIComponent(searchQuery)}&x=${lng}&y=${lat}&radius=150`);
             if(nr.ok){
               const nd2=await nr.json();
               (nd2.items||[]).forEach(item=>{
@@ -830,20 +859,54 @@ function initNaverMap(){
                 const iLat=parseInt(item.mapy)/10000000;
                 const iLng=parseInt(item.mapx)/10000000;
                 const d=Math.hypot(iLat-lat,iLng-lng)*111000;
-                if(d>100)return;
+                if(d>150)return;
                 seen2.add(name);
                 otherFromAll.push({name,category:item.category||'',lat:iLat,lng:iLng,tel:item.telephone||'',addr:item.roadAddress||item.address||'',dist:d});
               });
             }
           }catch(e){}
         }
-
         otherFromAll.sort((a,b)=>a.dist-b.dist);
 
         if(otherFromAll.length>0){
-          listEl.innerHTML=
-            `<div style="padding:8px 16px 4px;font-family:var(--mono);font-size:9.5px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;border-top:1px solid var(--hairline)">이 주변 다른 장소 ${otherFromAll.length}개</div>`+
-            otherFromAll.map(p=>{
+          sideEl.style.display='flex';
+          sideHeadEl.textContent=`주변 장소 ${otherFromAll.length}개`;
+          listEl.innerHTML=otherFromAll.map(p=>{
+            const cl=catKo[p.category||'']||(p.category||'').split('>').pop()||'';
+            return `<div class="mcc-item">
+              <div class="mcc-item-info">
+                <div class="mcc-item-name">${esc(p.name)}</div>
+                <div class="mcc-item-cat">${[cl,Math.round(p.dist)+'m',p.tel].filter(Boolean).join(' · ')}</div>
+              </div>
+              <button class="mcc-item-add" onclick="addPlaceAsEvent(${p.lat},${p.lng},'${p.name.replace(/'/g,'\\u0027')}')">+ 추가</button>
+            </div>`;
+          }).join('');
+        } else {
+          sideEl.style.display='none';
+          listEl.innerHTML='';
+        }
+
+      } else {
+        // primary 없음 → 메인에 첫번째, 사이드에 나머지
+        if(allPlaces.length===0){
+          document.getElementById('mcc-name').textContent=roadAddr||jibunAddr||`${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+          document.getElementById('mcc-addr').innerHTML='';
+          sideEl.style.display='none';
+        } else {
+          const first=allPlaces[0];
+          const rest=allPlaces.slice(1);
+          const cl0=catKo[first.category||'']||(first.category||'').split('>').pop()||'';
+          document.getElementById('mcc-name').textContent=first.name;
+          document.getElementById('mcc-addr').innerHTML=
+            (cl0?`<span style="font-family:var(--mono);font-size:9.5px;color:var(--accent);letter-spacing:.08em;text-transform:uppercase">${esc(cl0)}</span>`:'') +
+            (first.addr?' · '+esc(first.addr.split(' ').slice(-3).join(' ')):'');
+          card.dataset.name=first.name; card.dataset.lat=first.lat; card.dataset.lng=first.lng;
+          footEl.style.display='flex';
+
+          if(rest.length>0){
+            sideEl.style.display='flex';
+            sideHeadEl.textContent=`주변 장소 ${rest.length}개`;
+            listEl.innerHTML=rest.map(p=>{
               const cl=catKo[p.category||'']||(p.category||'').split('>').pop()||'';
               return `<div class="mcc-item">
                 <div class="mcc-item-info">
@@ -853,25 +916,10 @@ function initNaverMap(){
                 <button class="mcc-item-add" onclick="addPlaceAsEvent(${p.lat},${p.lng},'${p.name.replace(/'/g,'\\u0027')}')">+ 추가</button>
               </div>`;
             }).join('');
-        } else {
-          listEl.innerHTML='';
+          } else {
+            sideEl.style.display='none';
+          }
         }
-
-      } else {
-        // primary 없음 → 전체 목록
-        document.getElementById('mcc-name').textContent=`이 주변 ${allPlaces.length}개 장소`;
-        document.getElementById('mcc-addr').innerHTML=roadAddr?esc(roadAddr):'';
-        footEl.style.display='none';
-        listEl.innerHTML=allPlaces.map(p=>{
-          const cl=catKo[p.category||'']||(p.category||'').split('>').pop()||'';
-          return `<div class="mcc-item">
-            <div class="mcc-item-info">
-              <div class="mcc-item-name">${esc(p.name)}</div>
-              <div class="mcc-item-cat">${[cl,Math.round(p.dist)+'m',p.tel].filter(Boolean).join(' · ')}</div>
-            </div>
-            <button class="mcc-item-add" onclick="addPlaceAsEvent(${p.lat},${p.lng},'${p.name.replace(/'/g,'\\u0027')}')">+ 추가</button>
-          </div>`;
-        }).join('');
       }
     });
   } catch(e){ console.error('Naver map init error:',e); }
@@ -1123,6 +1171,8 @@ function closeMapSearch(){
 
 function closeMapClickCard(){
   document.getElementById('map-click-card').classList.remove('show');
+  document.getElementById('mcc-side').style.display='none';
+  document.getElementById('mcc-list').innerHTML='';
   removeSearchPin();
 }
 
