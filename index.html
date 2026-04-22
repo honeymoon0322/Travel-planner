@@ -826,8 +826,32 @@ function initNaverMap(){
         footEl.style.display='flex';
         removeSearchPin(); showSearchPin(primary.lat,primary.lng);
 
-        // 같은 allPlaces에서 primary 제외한 것을 바로 표시
-        const otherFromAll = allPlaces.filter(p=>p.name!==primary.name);
+        // primary 제외 나머지 + 항상 주소로 2차 검색해서 합치기
+        const otherFromAll=allPlaces.filter(p=>p.name!==primary.name);
+        const seen2=new Set(otherFromAll.map(p=>p.name));
+        seen2.add(primary.name);
+
+        const searchQuery=primary.addr||(roadAddr||jibunAddr);
+        if(searchQuery){
+          try{
+            const nr=await fetch(`/api/search?q=${encodeURIComponent(searchQuery)}&x=${lng}&y=${lat}&radius=100`);
+            if(nr.ok){
+              const nd2=await nr.json();
+              (nd2.items||[]).forEach(item=>{
+                const name=item.title.replace(/<[^>]*>/g,'');
+                if(seen2.has(name))return;
+                const iLat=parseInt(item.mapy)/10000000;
+                const iLng=parseInt(item.mapx)/10000000;
+                const d=Math.hypot(iLat-lat,iLng-lng)*111000;
+                if(d>100)return;
+                seen2.add(name);
+                otherFromAll.push({name,category:item.category||'',lat:iLat,lng:iLng,tel:item.telephone||'',addr:item.roadAddress||item.address||'',dist:d});
+              });
+            }
+          }catch(e){}
+        }
+
+        otherFromAll.sort((a,b)=>a.dist-b.dist);
 
         if(otherFromAll.length>0){
           listEl.innerHTML=
@@ -843,43 +867,7 @@ function initNaverMap(){
               </div>`;
             }).join('');
         } else {
-          // allPlaces에 없으면 주소로 2차 검색
-          const searchQuery=primary.addr||(roadAddr||jibunAddr);
-          if(searchQuery){
-            try{
-              const nr=await fetch(`/api/search?q=${encodeURIComponent(searchQuery)}&x=${lng}&y=${lat}&radius=100`);
-              if(nr.ok){
-                const nd2=await nr.json();
-                const otherPlaces=(nd2.items||[])
-                  .map(item=>({
-                    name:item.title.replace(/<[^>]*>/g,''),
-                    category:item.category||'',
-                    lat:parseInt(item.mapy)/10000000,
-                    lng:parseInt(item.mapx)/10000000,
-                    tel:item.telephone||'',
-                    addr:item.roadAddress||item.address||'',
-                    dist:Math.hypot(parseInt(item.mapy)/10000000-lat, parseInt(item.mapx)/10000000-lng)*111000
-                  }))
-                  .filter(p=>p.name!==primary.name && p.dist<=100)
-                  .sort((a,b)=>a.dist-b.dist);
-
-                if(otherPlaces.length>0){
-                  listEl.innerHTML=
-                    `<div style="padding:8px 16px 4px;font-family:var(--mono);font-size:9.5px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;border-top:1px solid var(--hairline)">이 주변 다른 장소 ${otherPlaces.length}개</div>`+
-                    otherPlaces.map(p=>{
-                      const cl=catKo[p.category||'']||(p.category||'').split('>').pop()||'';
-                      return `<div class="mcc-item">
-                        <div class="mcc-item-info">
-                          <div class="mcc-item-name">${esc(p.name)}</div>
-                          <div class="mcc-item-cat">${[cl,Math.round(p.dist)+'m',p.tel].filter(Boolean).join(' · ')}</div>
-                        </div>
-                        <button class="mcc-item-add" onclick="addPlaceAsEvent(${p.lat},${p.lng},'${p.name.replace(/'/g,'\\u0027')}')">+ 추가</button>
-                      </div>`;
-                    }).join('');
-                } else { listEl.innerHTML=''; }
-              }
-            }catch(e){ listEl.innerHTML=''; }
-          } else { listEl.innerHTML=''; }
+          listEl.innerHTML='';
         }
 
       } else {
