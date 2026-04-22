@@ -751,7 +751,7 @@ function initNaverMap(){
             });
           }catch(e){resolve({road:'',jibun:''});}
         }),
-        fetch(`/api/search?nearby=1&x=${lng}&y=${lat}&radius=80`).then(r=>r.ok?r.json():null).catch(()=>null)
+        fetch(`/api/search?nearby=1&x=${lng}&y=${lat}&radius=200`).then(r=>r.ok?r.json():null).catch(()=>null)
       ]);
 
       const roadAddr=revGeo.status==='fulfilled'?revGeo.value.road:'';
@@ -768,7 +768,7 @@ function initNaverMap(){
           const iLat=parseInt(item.mapy)/10000000;
           const iLng=parseInt(item.mapx)/10000000;
           const dist=Math.hypot(iLat-lat,iLng-lng)*111000;
-          if(dist>80)return;
+          if(dist>200)return;
           seen.add(name);
           allPlaces.push({name,category:item.category||'',lat:iLat,lng:iLng,tel:item.telephone||'',addr:item.roadAddress||item.address||'',dist});
         });
