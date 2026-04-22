@@ -1261,8 +1261,11 @@ function closeMapSearch(){
 
 function closeRightPanel(){
   document.getElementById('map-right-panel').classList.remove('show');
+  document.getElementById('map-right-panel').dataset.mode='';
   document.getElementById('mrp-list').innerHTML='';
   document.getElementById('mrp-nearby-head').style.display='none';
+  document.getElementById('mrp-actions').style.display='flex';
+  document.getElementById('fav-panel').classList.remove('show');
   removeSearchPin();
 }
 function closeMapClickCard(){ closeRightPanel(); } // 하위 호환
@@ -1402,21 +1405,55 @@ function addFavCategory(){
 }
 
 function openFavPanel(){
+  // 오른쪽 패널 열고 즐겨찾기 표시
+  const panel=document.getElementById('map-right-panel');
+  // 장소 정보 영역 숨기고 즐겨찾기 모드로
+  document.getElementById('mrp-name').textContent='즐겨찾기';
+  document.getElementById('mrp-addr').innerHTML='';
+  document.getElementById('mrp-actions').style.display='none';
+  document.getElementById('mrp-nearby-head').style.display='none';
+  document.getElementById('mrp-list').innerHTML='';
+  panel.dataset.mode='favorites';
+  panel.classList.add('show');
   renderFavCats(); renderFavList();
   document.getElementById('fav-panel').classList.add('show');
 }
-function closeFavPanel(){document.getElementById('fav-panel').classList.remove('show');}
+function closeFavPanel(){
+  document.getElementById('fav-panel').classList.remove('show');
+  // 일반 장소 패널 모드로 복원
+  const panel=document.getElementById('map-right-panel');
+  if(panel.dataset.mode==='favorites'){
+    panel.classList.remove('show');
+    panel.dataset.mode='';
+    document.getElementById('mrp-actions').style.display='flex';
+  }
+}
 
 function renderFavCats(){
   const el=document.getElementById('fav-cats');
   el.innerHTML=[
-    `<span class="fav-cat-chip ${activeFavCat==='전체'?'active':''}" onclick="setFavCat('전체')">전체</span>`,
-    ...favCategories.map(c=>`
-      <span class="fav-cat-chip ${activeFavCat===c.name?'active':''}" style="${activeFavCat===c.name?`background:${c.color};border-color:${c.color};color:#fff`:''}" onclick="setFavCat('${esc(c.name)}')">
-        <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${c.color};margin-right:4px;vertical-align:middle"></span>${esc(c.name)}
-      </span>`),
-    `<span class="fav-cat-chip add-cat" onclick="openAddCatModal()">+ 카테고리 추가</span>`
+    `<span class="fav-cat-chip ${activeFavCat==='전체'?'active':''}" onclick="setFavCat('전체')">전체 <small style="font-size:10px;opacity:.7">${favorites.length}</small></span>`,
+    ...favCategories.map(c=>{
+      const count=favorites.filter(f=>f.cat===c.name).length;
+      return `<span class="fav-cat-chip ${activeFavCat===c.name?'active':''}" style="${activeFavCat===c.name?`background:${c.color};border-color:${c.color};color:#fff`:''}" onclick="setFavCat('${esc(c.name)}')">
+        <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${activeFavCat===c.name?'rgba(255,255,255,.6)':c.color};margin-right:4px;vertical-align:middle"></span>${esc(c.name)} <small style="font-size:10px;opacity:.7">${count}</small>
+        <button onclick="event.stopPropagation();deleteFavCat('${esc(c.name)}')" style="margin-left:4px;font-size:11px;opacity:.6;line-height:1;padding:0;border:none;background:none;cursor:pointer;color:inherit" title="카테고리 삭제">×</button>
+      </span>`;
+    }),
+    `<span class="fav-cat-chip add-cat" onclick="openAddCatModal()">+ 추가</span>`
   ].join('');
+}
+
+function deleteFavCat(name){
+  const count=favorites.filter(f=>f.cat===name).length;
+  const msg=count>0
+    ? `'${name}' 카테고리를 삭제할까요?\n이 카테고리의 즐겨찾기 ${count}개도 함께 삭제됩니다.`
+    : `'${name}' 카테고리를 삭제할까요?`;
+  if(!confirm(msg))return;
+  favCategories=favCategories.filter(c=>c.name!==name);
+  favorites=favorites.filter(f=>f.cat!==name);
+  if(activeFavCat===name)activeFavCat='전체';
+  saveFavorites(); renderFavMapMarkers(); renderFavCats(); renderFavList();
 }
 
 function setFavCat(cat){activeFavCat=cat;renderFavCats();renderFavList();}
