@@ -1428,41 +1428,8 @@ function closeFavPanel(){
   }
 }
 
-// 즐겨찾기 패널 드래그로 닫기
-(function initFavDrag(){
-  let startX=0, curX=0, dragging=false;
-  const getPanel=()=>document.getElementById('fav-panel');
 
-  function onStart(e){
-    const panel=getPanel();
-    if(!panel.classList.contains('show'))return;
-    startX=e.type==='touchstart'?e.touches[0].clientX:e.clientX;
-    curX=startX; dragging=true;
-    panel.style.transition='none';
-  }
-  function onMove(e){
-    if(!dragging)return;
-    curX=e.type==='touchmove'?e.touches[0].clientX:e.clientX;
-    const dx=Math.max(0,curX-startX); // 오른쪽으로만
-    getPanel().style.transform=`translateX(${dx}px)`;
-  }
-  function onEnd(){
-    if(!dragging)return;
-    dragging=false;
-    const panel=getPanel();
-    panel.style.transition='';
-    panel.style.transform='';
-    const dx=curX-startX;
-    if(dx>80) closeFavPanel(); // 80px 이상 드래그하면 닫기
-  }
 
-  document.addEventListener('mousedown',onStart);
-  document.addEventListener('mousemove',onMove);
-  document.addEventListener('mouseup',onEnd);
-  document.addEventListener('touchstart',onStart,{passive:true});
-  document.addEventListener('touchmove',onMove,{passive:true});
-  document.addEventListener('touchend',onEnd);
-})();
 
 function renderFavCats(){
   const el=document.getElementById('fav-cats');
