@@ -7,7 +7,7 @@ export default async function handler(req, res) {
 
   // nearby=1 이면 좌표 주변 가게를 다양한 키워드로 검색해서 합치기
   if (nearby === '1' && x && y) {
-    const keywords = ['음식점', '카페', '편의점', '학원', '병원', '약국', '헬스', '미용', '은행', '마트', '옷'];
+    const keywords = ['음식점', '카페', '편의점', '학원', '병원', '약국', '헬스', '미용', '은행', '마트', '옷', '쇼핑', '브랜드', '패션', '화장품', '서점', '약', '주차', '스파', '호텔'];
     const seen = new Set();
     const items = [];
 
