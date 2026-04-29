@@ -2032,11 +2032,17 @@ async function doMapSearch(){
   clearSearchResultMarkers();
   removeSearchPin();
 
+  // 현재 지도 중심 좌표
+  const center=map?map.getCenter():null;
+  const cLat=center?center.lat():37.5665;
+  const cLng=center?center.lng():126.9780;
+
   let allItems=[];
 
-  // 1) 네이버 지역 검색 (서버리스 프록시)
+  // 1) 네이버 지역 검색 — 현재 지도 중심 기준으로 검색
   try{
-    const r=await fetch(`/api/search?q=${encodeURIComponent(q)}`);
+    const url=`/api/search?q=${encodeURIComponent(q)}&x=${cLng}&y=${cLat}&radius=20000`;
+    const r=await fetch(url);
     if(r.ok){
       const data=await r.json();
       if(data.items&&data.items.length>0){
@@ -2056,7 +2062,7 @@ async function doMapSearch(){
 
   // 2) Nominatim 병행 (해외 장소 보완)
   try{
-    const r=await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=5&namedetails=1&accept-language=ko,en`);
+    const r=await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=5&namedetails=1&accept-language=ko,en&lat=${cLat}&lon=${cLng}`);
     const data=await r.json();
     const nomItems=data.map(d=>({
       name:(d.namedetails&&(d.namedetails['name:ko']||d.namedetails.name))||d.display_name.split(',')[0],
@@ -2075,7 +2081,12 @@ async function doMapSearch(){
     return;
   }
 
-  // 모든 결과를 지도에 핀으로 표시 + 범위 맞추기
+  // 3) 지도 중심에서 거리순 정렬
+  allItems.forEach(item=>{
+    item._dist=Math.hypot(item.lat-cLat, item.lng-cLng)*111000; // 미터
+  });
+  allItems.sort((a,b)=>a._dist-b._dist);
+
   showAllResultPins(allItems);
   renderSearchResults(allItems);
 }
@@ -2085,15 +2096,18 @@ function renderSearchResults(items){
   res.innerHTML=items.slice(0,8).map((item,idx)=>{
     const cat=item.category?`<span style="font-family:var(--mono);font-size:9.5px;color:var(--accent);letter-spacing:.06em;text-transform:uppercase;">${esc(item.category.split('>').pop())}</span>`:'';
     const tel=item.tel?`<span style="font-size:11px;color:var(--muted);">${esc(item.tel)}</span>`:'';
+    const dist=item._dist!=null?(item._dist<1000?Math.round(item._dist)+'m':(item._dist/1000).toFixed(1)+'km'):'';
+    const distBadge=dist?`<span style="font-family:var(--mono);font-size:9.5px;color:var(--muted-2);margin-left:auto;flex-shrink:0">${dist}</span>`:'';
     const sub=[cat,item.addr?esc(item.addr):'',tel].filter(Boolean).join(' · ');
     return `<div class="sri" onclick="selectPlace(${item.lat},${item.lng},'${(item.name||'').replace(/'/g,'\\u0027')}','${(item.addr||'').replace(/'/g,'\\u0027')}','${(item.category||'').replace(/'/g,'\\u0027')}','${(item.tel||'').replace(/'/g,'\\u0027')}')">
       <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
         <div style="width:20px;height:20px;background:var(--accent);color:#fff;border-radius:4px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:10px;font-weight:600;flex-shrink:0">${idx+1}</div>
       </div>
-      <div class="sri-info">
+      <div class="sri-info" style="flex:1;min-width:0;">
         <div class="sri-name">${esc(item.name||'')}</div>
         ${sub?`<div class="sri-addr">${sub}</div>`:''}
       </div>
+      ${distBadge}
       <button class="sri-add" onclick="event.stopPropagation();addPlaceAsEvent(${item.lat},${item.lng},'${(item.name||'').replace(/'/g,'\\u0027')}')">+ 일정 추가</button>
     </div>`;
   }).join('');
