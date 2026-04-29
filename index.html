@@ -291,6 +291,22 @@ input,textarea,select{font-family:inherit;font-size:inherit;color:inherit;}
 .transit-opt svg{width:20px;height:20px;stroke-width:1.75;}
 .transit-opt:hover,.transit-opt.active{background:var(--ink);color:#fff;border-color:var(--ink);}
 
+/* LOGIN */
+#screen-login{display:flex;align-items:center;justify-content:center;background:var(--bg);}
+.login-wrap{width:100%;max-width:420px;padding:24px;}
+.login-box{background:var(--surface);border:1px solid var(--hairline);border-radius:var(--r-xl);padding:48px 40px;text-align:center;box-shadow:var(--shadow-lg);}
+.login-logo{font-family:'Cafe24Meongi',serif;font-size:36px;color:var(--ink);margin-bottom:10px;}
+.login-sub{font-size:14px;color:var(--muted);margin-bottom:36px;}
+.btn-login-google{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:13px 20px;border:1px solid var(--hairline-strong);border-radius:var(--r-lg);background:var(--surface);font-size:14px;font-weight:500;color:var(--ink);cursor:pointer;transition:all .15s;}
+.btn-login-google:hover{background:var(--surface-warm);border-color:var(--ink);}
+
+/* USER AVATAR in header */
+.user-avatar{width:30px;height:30px;border-radius:50%;object-fit:cover;cursor:pointer;border:2px solid var(--hairline);}
+.user-avatar:hover{border-color:var(--ink);}
+
+/* SHARED BADGE */
+.shared-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:99px;background:rgba(107,140,174,.15);color:var(--sky);font-size:10.5px;font-family:var(--mono);letter-spacing:.08em;}
+
 /* MAP */
 .map-panel{display:flex;flex-direction:column;background:#EEE8DA;flex:1;min-width:0;overflow:hidden;position:relative;}
 #map{flex:1;min-height:0;z-index:1;width:100%;}
@@ -382,8 +398,40 @@ input,textarea,select{font-family:inherit;font-size:inherit;color:inherit;}
   .trip-meta{display:none;}
 }
 </style>
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyALVSFNytldu63h_h3oo-K4W9Jcuwsf-nc",
+  authDomain: "wayfarer-e57c9.firebaseapp.com",
+  projectId: "wayfarer-e57c9",
+  storageBucket: "wayfarer-e57c9.firebasestorage.app",
+  messagingSenderId: "990979037843",
+  appId: "1:990979037843:web:7df1f695db08a5010c0b66"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+</script>
+
 </head>
 <body>
+
+<!-- LOGIN SCREEN -->
+<div class="screen" id="screen-login">
+  <div class="login-wrap">
+    <div class="login-box">
+      <div class="login-logo">Wayfarer</div>
+      <p class="login-sub">함께 만드는 여행 플래너</p>
+      <button class="btn btn-login-google" onclick="signInWithGoogle()">
+        <svg viewBox="0 0 24 24" width="18" height="18"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+        Google로 계속하기
+      </button>
+    </div>
+  </div>
+</div>
 
 <!-- HOME -->
 <div class="screen" id="screen-home">
@@ -398,6 +446,7 @@ input,textarea,select{font-family:inherit;font-size:inherit;color:inherit;}
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         새 여행 추가
       </button>
+      <img id="home-user-avatar" class="user-avatar" src="" alt="프로필" style="display:none" onclick="signOut()" title="로그아웃">
     </div>
   </header>
   <div class="home-body">
@@ -750,8 +799,114 @@ let state = {currentDay:0,selectedEventId:null,editingEventId:null,editingType:'
 let map = null, markers = [], pendingInvite = null, naverLoaded = false;
 
 // STORAGE
-function saveTrips(){try{localStorage.setItem('wayfarer_trips',JSON.stringify(trips));}catch(e){}}
-function loadTrips(){try{trips=JSON.parse(localStorage.getItem('wayfarer_trips')||'[]');}catch(e){trips=[];}}
+// ====== AUTH & FIREBASE ======
+let currentUser = null;
+let tripsListener = null;
+let sharedTripListener = null;
+
+function signInWithGoogle(){
+  const provider = new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(provider).catch(e=>alert('로그인 실패: '+e.message));
+}
+
+function signOut(){
+  if(!confirm('로그아웃 할까요?'))return;
+  auth.signOut();
+}
+
+auth.onAuthStateChanged(async user=>{
+  currentUser = user;
+  if(user){
+    const av=document.getElementById('home-user-avatar');
+    if(av&&user.photoURL){av.src=user.photoURL;av.style.display='block';}
+    const hash=location.hash;
+    if(hash.startsWith('#share=')){
+      const shareId=hash.slice(7);
+      await openSharedTrip(shareId);
+      return;
+    }
+    loadMyTrips();
+    loadFavorites();
+    showScreen('home');
+  } else {
+    if(tripsListener){tripsListener();tripsListener=null;}
+    trips=[];
+    showScreen('login');
+  }
+});
+
+function saveTrips(){ /* Firestore 자동 처리 */ }
+function loadTrips(){ /* onAuthStateChanged에서 처리 */ }
+
+function loadMyTrips(){
+  if(!currentUser)return;
+  if(tripsListener)tripsListener();
+  tripsListener = db.collection('users').doc(currentUser.uid)
+    .collection('trips').orderBy('updatedAt','desc')
+    .onSnapshot(snap=>{
+      trips = snap.docs.map(d=>({...d.data(),id:d.id}));
+      renderHomeScreen();
+    }, e=>console.warn('trips error',e));
+}
+
+async function saveTripToFirestore(trip){
+  if(!currentUser)return;
+  const data = JSON.parse(JSON.stringify(trip));
+  data.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+  data.ownerId = currentUser.uid;
+  await db.collection('users').doc(currentUser.uid).collection('trips').doc(trip.id).set(data);
+}
+
+async function deleteTripFromFirestore(id){
+  if(!currentUser)return;
+  await db.collection('users').doc(currentUser.uid).collection('trips').doc(id).delete();
+  try{ await db.collection('sharedTrips').doc(id).delete(); }catch(e){}
+}
+
+let isSharedMode = false;
+let sharedTripId = null;
+
+async function openSharedTrip(shareId){
+  const doc = await db.collection('sharedTrips').doc(shareId).get();
+  if(!doc.exists){
+    alert('공유 링크가 유효하지 않아요.');
+    location.hash=''; showScreen('home'); return;
+  }
+  isSharedMode=true; sharedTripId=shareId;
+  if(sharedTripListener)sharedTripListener();
+  sharedTripListener = db.collection('sharedTrips').doc(shareId).onSnapshot(snap=>{
+    if(!snap.exists)return;
+    const data={...snap.data(),id:shareId};
+    const idx=trips.findIndex(t=>t.id===shareId);
+    if(idx===-1)trips.push(data); else trips[idx]=data;
+    if(currentTripId===shareId){
+      renderDaysRail();renderDayHeader();renderTimeline();renderMapMarkers();
+    }
+  });
+  loadMyTrips();
+  loadFavorites();
+  showScreen('home');
+  setTimeout(()=>openTrip(shareId),800);
+}
+
+async function shareTrip(trip){
+  const data=JSON.parse(JSON.stringify(trip));
+  data.sharedAt=firebase.firestore.FieldValue.serverTimestamp();
+  data.sharedBy=currentUser?.uid||'anonymous';
+  await db.collection('sharedTrips').doc(trip.id).set(data);
+  return location.origin+location.pathname+'#share='+trip.id;
+}
+
+async function saveCurrentTrip(){
+  const trip=curTrip(); if(!trip)return;
+  if(isSharedMode&&sharedTripId===trip.id){
+    const data=JSON.parse(JSON.stringify(trip));
+    data.updatedAt=firebase.firestore.FieldValue.serverTimestamp();
+    await db.collection('sharedTrips').doc(trip.id).set(data);
+  } else {
+    await saveTripToFirestore(trip);
+  }
+}
 function genId(){return 'trip_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);}
 
 // SHARE ENCODING
@@ -762,8 +917,9 @@ function parseShareHash(){const h=location.hash;if(!h.startsWith('#share='))retu
 
 // SCREENS
 function showScreen(name){
-  document.getElementById('screen-home').classList.toggle('hidden',name!=='home');
-  document.getElementById('screen-trip').classList.toggle('hidden',name!=='trip');
+  document.getElementById('screen-login').classList.toggle('hidden', name!=='login');
+  document.getElementById('screen-home').classList.toggle('hidden', name!=='home');
+  document.getElementById('screen-trip').classList.toggle('hidden', name!=='trip');
 }
 function goHome(){
   showScreen('home');currentTripId=null;
@@ -818,10 +974,10 @@ function createTrip(){
   let subtitle=sub||'날짜 미정';
   if(start&&end){const fmt=d=>{const p=d.split('-');return p[1]+'/'+p[2];};subtitle=fmt(start)+' — '+fmt(end)+(sub?' · '+sub:'');}
   const trip={id:genId(),title,subtitle,travelers,days:Array.from({length:numDays},(_,i)=>({label:(i+1)+'번째 날',date:start?offsetDate(start,i):'날짜 미정',center:[37.5665,126.9780],events:[]}))};
-  trips.push(trip);saveTrips();closeModal('modal-new-trip');openTrip(trip.id);
+  saveTripToFirestore(trip);closeModal('modal-new-trip');openTrip(trip.id);
 }
 function offsetDate(start,n){const d=new Date(start);d.setDate(d.getDate()+n);return(d.getMonth()+1)+'월 '+d.getDate()+'일';}
-function deleteTrip(id){if(!confirm('이 여행을 삭제할까요?'))return;trips=trips.filter(t=>t.id!==id);saveTrips();renderHomeScreen();}
+function deleteTrip(id){if(!confirm('이 여행을 삭제할까요?'))return;deleteTripFromFirestore(id);}
 function clearNewTripForm(){['nt-title','nt-sub','nt-start','nt-end'].forEach(id=>document.getElementById(id).value='');document.getElementById('nt-travelers').value=2;document.getElementById('nt-days').value=3;}
 
 // OPEN TRIP
@@ -847,8 +1003,8 @@ function renderDaysRail(){
       <span class="d-label">${esc(d.date.split(' ').slice(0,2).join(' '))}</span>
     </button>`).join('')+`<button class="add-day-chip" onclick="addDay()" title="날 추가"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>`;
 }
-function addDay(){const trip=curTrip();if(!trip)return;const n=trip.days.length+1;trip.days.push({label:n+'번째 날',date:'날짜 미정',center:[37.5665,126.9780],events:[]});saveTrips();renderDaysRail();}
-function removeDay(idx){const trip=curTrip();if(!trip||trip.days.length<=1){alert('최소 1일은 있어야 해요.');return;}if(!confirm('이 날 전체를 삭제할까요?'))return;trip.days.splice(idx,1);if(state.currentDay>=trip.days.length)state.currentDay=trip.days.length-1;saveTrips();renderDaysRail();renderDayHeader();renderTimeline();renderMapMarkers();}
+function addDay(){const trip=curTrip();if(!trip)return;const n=trip.days.length+1;trip.days.push({label:n+'번째 날',date:'날짜 미정',center:[37.5665,126.9780],events:[]});saveCurrentTrip();renderDaysRail();}
+function removeDay(idx){const trip=curTrip();if(!trip||trip.days.length<=1){alert('최소 1일은 있어야 해요.');return;}if(!confirm('이 날 전체를 삭제할까요?'))return;trip.days.splice(idx,1);if(state.currentDay>=trip.days.length)state.currentDay=trip.days.length-1;saveCurrentTrip();renderDaysRail();renderDayHeader();renderTimeline();renderMapMarkers();}
 function selectDay(i){state.currentDay=i;state.selectedEventId=null;closeDetail();renderDaysRail();renderDayHeader();renderTimeline();renderMapMarkers();}
 function renderDayHeader(){
   const trip=curTrip();if(!trip)return;const day=trip.days[state.currentDay];
@@ -1207,7 +1363,7 @@ function editCurrentEvent(){
   if(ev.location){document.getElementById('f-locname').value=ev.location.name||'';document.getElementById('f-lat').value=ev.location.lat||'';document.getElementById('f-lng').value=ev.location.lng||'';}
   openModal('modal-event');
 }
-function deleteCurrentEvent(){if(!state.selectedEventId||!confirm('이 일정을 삭제할까요?'))return;const trip=curTrip();trip.days[state.currentDay].events=trip.days[state.currentDay].events.filter(e=>e.id!==state.selectedEventId);saveTrips();closeDetail();}
+function deleteCurrentEvent(){if(!state.selectedEventId||!confirm('이 일정을 삭제할까요?'))return;const trip=curTrip();trip.days[state.currentDay].events=trip.days[state.currentDay].events.filter(e=>e.id!==state.selectedEventId);saveCurrentTrip();closeDetail();}
 function saveEvent(){
   const title=document.getElementById('f-title').value.trim();if(!title){alert('제목을 입력해 주세요.');return;}
   const type=state.editingType;
@@ -1224,7 +1380,7 @@ function saveEvent(){
   const trip=curTrip();const day=trip.days[state.currentDay];
   if(state.editingEventId){const i=day.events.findIndex(e=>e.id===state.editingEventId);if(i!==-1)day.events[i]=ev;}
   else{day.events.push(ev);day.events.sort((a,b)=>(a.time||'').localeCompare(b.time||''));}
-  saveTrips();closeModal('modal-event');renderDayHeader();renderTimeline();renderMapMarkers();
+  saveCurrentTrip();closeModal('modal-event');renderDayHeader();renderTimeline();renderMapMarkers();
 }
 function clearEventForm(){['f-title','f-time','f-endtime','f-airline','f-flightno','f-from','f-to','f-terminal','f-gate','f-seat','f-booking','f-locname','f-lat','f-lng','f-notes','f-checkin','f-checkout','f-checkin-date','f-checkout-date','f-lodging-booking'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});}
 function setFormType(type){
@@ -1270,22 +1426,34 @@ function saveTransit(){
     time:''
   };
   day.events.splice(transitInsertAfterIdx+1,0,ev);
-  saveTrips();closeModal('modal-transit');renderTimeline();renderMapMarkers();
+  saveCurrentTrip();closeModal('modal-transit');renderTimeline();renderMapMarkers();
 }
 function openTripEdit(){
   const trip=curTrip();if(!trip)return;
   const t=prompt('여행 이름',trip.title);if(!t)return;
   const s=prompt('부제 (날짜, 여행지)',trip.subtitle||'');
-  trip.title=t;trip.subtitle=s||'';saveTrips();updateTripHeader();
+  trip.title=t;trip.subtitle=s||'';saveCurrentTrip();updateTripHeader();
 }
 
 // SHARE
-function openShareModal(){const trip=curTrip();if(!trip)return;document.getElementById('share-link-input').value=getShareLink(trip);document.getElementById('copy-ok').classList.remove('show');openModal('modal-share');}
+async function openShareModal(){
+  const trip=curTrip();if(!trip)return;
+  document.getElementById('share-link-input').value='링크 생성 중...';
+  document.getElementById('copy-ok').classList.remove('show');
+  openModal('modal-share');
+  const url = await shareTrip(trip);
+  document.getElementById('share-link-input').value=url;
+}
 function copyShareLink(){const inp=document.getElementById('share-link-input');navigator.clipboard.writeText(inp.value).catch(()=>{inp.select();document.execCommand('copy');});document.getElementById('copy-ok').classList.add('show');}
-function quickShare(id){const trip=trips.find(t=>t.id===id);if(!trip)return;const link=getShareLink(trip);navigator.clipboard.writeText(link).catch(()=>{});alert('공유 링크가 복사됐어요!\n\n링크를 받은 사람이 열면 이 일정을 자신의 목록에 저장할 수 있어요.');}
+async function quickShare(id){
+  const trip=trips.find(t=>t.id===id);if(!trip)return;
+  const url=await shareTrip(trip);
+  navigator.clipboard.writeText(url).catch(()=>{});
+  alert('공유 링크가 복사됐어요!\n\n링크를 열면 실시간으로 함께 편집할 수 있어요!');
+}
 function openInviteInput(){const url=prompt('공유받은 링크를 붙여넣어 주세요:');if(!url)return;try{const h=(url.split('#')[1]||'');if(!h.startsWith('share=')){alert('올바른 Wayfarer 공유 링크가 아닌 것 같아요.');return;}const d=decodeTrip(h.slice(6));if(!d)throw new Error();showInviteModal(d);}catch(e){alert('링크를 읽을 수 없어요. 링크가 올바른지 확인해 주세요.');}}
 function showInviteModal(trip){pendingInvite=trip;document.getElementById('invite-title').textContent=trip.title;const total=trip.days.reduce((s,d)=>s+d.events.length,0);document.getElementById('invite-meta').textContent=`${trip.days.length}일 · ${total}개 일정 · ${trip.travelers||1}명`;openModal('modal-invite');}
-function acceptInvite(){if(!pendingInvite)return;const t={...pendingInvite,id:genId(),shared:true};trips.push(t);saveTrips();pendingInvite=null;closeModal('modal-invite');renderHomeScreen();openTrip(t.id);}
+function acceptInvite(){if(!pendingInvite)return;const t={...pendingInvite,id:genId(),shared:true};saveTripToFirestore(t);pendingInvite=null;closeModal('modal-invite');setTimeout(()=>openTrip(t.id),500);}
 
 // MAP SEARCH
 let searchPin = null;
@@ -1787,11 +1955,7 @@ function closeModal(id){document.getElementById(id).classList.remove('open');}
 // INIT
 window.addEventListener('load',()=>{
   initIcons();
-  loadTrips();
-  loadFavorites();
-  const shared=parseShareHash();
-  if(shared){showInviteModal(shared);history.replaceState(null,'',location.pathname);}
-  renderHomeScreen();
+  // Firebase auth.onAuthStateChanged가 로그인/화면 전환/데이터 로드를 모두 처리함
   loadNaverScript(NAVER_KEY);
 });
 document.addEventListener('keydown',e=>{
