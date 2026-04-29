@@ -291,6 +291,15 @@ input,textarea,select{font-family:inherit;font-size:inherit;color:inherit;}
 .transit-opt svg{width:20px;height:20px;stroke-width:1.75;}
 .transit-opt:hover,.transit-opt.active{background:var(--ink);color:#fff;border-color:var(--ink);}
 
+.color-picker-wrap{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.color-swatches{display:flex;gap:6px;flex-wrap:wrap;}
+.color-swatch{width:26px;height:26px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:all .15s;flex-shrink:0;}
+.color-swatch:hover{transform:scale(1.15);}
+.color-swatch.active{border-color:var(--ink);box-shadow:0 0 0 2px #fff,0 0 0 4px var(--ink);}
+#cat-color-custom{width:36px;height:36px;border-radius:50%;border:2px solid var(--hairline);cursor:pointer;padding:0;overflow:hidden;background:none;}
+#cat-color-custom::-webkit-color-swatch-wrapper{padding:0;}
+#cat-color-custom::-webkit-color-swatch{border:none;border-radius:50%;}
+
 /* LOGIN */
 #screen-login{display:flex;align-items:center;justify-content:center;background:var(--bg);}
 .login-wrap{width:100%;max-width:420px;padding:24px;}
@@ -688,10 +697,6 @@ const db = firebase.firestore();
         <button class="btn btn-primary" onclick="copyShareLink()">복사</button>
       </div>
       <div class="copy-ok" id="copy-ok">링크가 복사됐어요!</div>
-      <div class="share-info">
-        <strong>공유 방식 안내</strong><br>
-        링크를 받은 사람이 열면 현재 일정의 사본이 그 사람의 목록에 저장돼요. 각자 편집 후 링크를 다시 공유하면 최신 일정을 서로 반영할 수 있어요.
-      </div>
     </div>
     <div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal('modal-share')">닫기</button></div>
   </div>
@@ -703,6 +708,15 @@ const db = firebase.firestore();
     <div class="modal-head"><h3>카테고리 <em>추가</em></h3></div>
     <div class="modal-body">
       <div class="form-row"><div class="form-field full"><label>카테고리 이름</label><input type="text" id="cat-name-input" placeholder="예: 맛집, 카페, 관광지"></div></div>
+      <div class="form-row">
+        <div class="form-field full">
+          <label>색상 선택</label>
+          <div class="color-picker-wrap">
+            <div class="color-swatches" id="color-swatches"></div>
+            <input type="color" id="cat-color-custom" value="#E85D4A" title="직접 선택">
+          </div>
+        </div>
+      </div>
     </div>
     <div class="modal-foot">
       <button class="btn btn-ghost" onclick="closeModal('modal-add-cat')">취소</button>
@@ -1796,17 +1810,42 @@ function updateFavBtn(name){
   btn.querySelector('svg').setAttribute('fill',saved?'currentColor':'none');
 }
 
+let selectedCatColor = '#E85D4A';
+
 function openAddCatModal(){
   closeModal('modal-save-fav');
   document.getElementById('cat-name-input').value='';
+  selectedCatColor = FAV_COLORS[favCategories.length % FAV_COLORS.length];
+  document.getElementById('cat-color-custom').value = selectedCatColor;
+  renderColorSwatches();
   openModal('modal-add-cat');
+}
+
+function renderColorSwatches(){
+  const el = document.getElementById('color-swatches');
+  if(!el) return;
+  el.innerHTML = FAV_COLORS.map(c=>
+    `<div class="color-swatch${c===selectedCatColor?' active':''}" style="background:${c}" onclick="selectCatColor('${c}')" title="${c}"></div>`
+  ).join('');
+  // custom color input sync
+  const custom = document.getElementById('cat-color-custom');
+  if(custom){
+    custom.value = selectedCatColor;
+    custom.oninput = (e)=>{ selectedCatColor=e.target.value; renderColorSwatches(); };
+  }
+}
+
+function selectCatColor(color){
+  selectedCatColor = color;
+  document.getElementById('cat-color-custom').value = color;
+  renderColorSwatches();
 }
 
 function addFavCategory(){
   const name=document.getElementById('cat-name-input').value.trim();
   if(!name){alert('카테고리 이름을 입력해 주세요.');return;}
   if(favCategories.find(c=>c.name===name)){alert('이미 있는 카테고리예요.');return;}
-  const color=FAV_COLORS[favCategories.length%FAV_COLORS.length];
+  const color = selectedCatColor || FAV_COLORS[favCategories.length%FAV_COLORS.length];
   favCategories.push({name,color});
   saveFavorites(); closeModal('modal-add-cat');
   renderFavCats(); renderFavList();
