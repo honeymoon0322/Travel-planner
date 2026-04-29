@@ -833,6 +833,7 @@ auth.onAuthStateChanged(async user=>{
   if(user){
     const av=document.getElementById('home-user-avatar');
     if(av&&user.photoURL){av.src=user.photoURL;av.style.display='block';}
+
     const hash=location.hash;
     if(hash.startsWith('#share=')){
       const shareId=hash.slice(7);
@@ -845,6 +846,14 @@ auth.onAuthStateChanged(async user=>{
   } else {
     if(tripsListener){tripsListener();tripsListener=null;}
     trips=[];
+
+    // 비로그인이어도 공유 링크는 접근 가능
+    const hash=location.hash;
+    if(hash.startsWith('#share=')){
+      const shareId=hash.slice(7);
+      await openSharedTrip(shareId);
+      return;
+    }
     showScreen('login');
   }
 });
@@ -865,7 +874,11 @@ function loadMyTrips(){
 
 async function saveTripToFirestore(trip){
   if(!currentUser)return;
-  const data = JSON.parse(JSON.stringify(trip));
+  // Timestamp 등 직렬화 불가 필드 제거 후 저장
+  const data = JSON.parse(JSON.stringify(trip, (k,v)=>{
+    if(v&&typeof v==='object'&&v.toDate)return v.toDate().toISOString();
+    return v;
+  }));
   data.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
   data.ownerId = currentUser.uid;
   await db.collection('users').doc(currentUser.uid).collection('trips').doc(trip.id).set(data);
@@ -881,26 +894,42 @@ let isSharedMode = false;
 let sharedTripId = null;
 
 async function openSharedTrip(shareId){
-  const doc = await db.collection('sharedTrips').doc(shareId).get();
-  if(!doc.exists){
-    alert('공유 링크가 유효하지 않아요.');
-    location.hash=''; showScreen('home'); return;
-  }
-  isSharedMode=true; sharedTripId=shareId;
-  if(sharedTripListener)sharedTripListener();
-  sharedTripListener = db.collection('sharedTrips').doc(shareId).onSnapshot(snap=>{
-    if(!snap.exists)return;
-    const data={...snap.data(),id:shareId};
-    const idx=trips.findIndex(t=>t.id===shareId);
-    if(idx===-1)trips.push(data); else trips[idx]=data;
-    if(currentTripId===shareId){
-      renderDaysRail();renderDayHeader();renderTimeline();renderMapMarkers();
+  try{
+    const doc = await db.collection('sharedTrips').doc(shareId).get();
+    if(!doc.exists){
+      alert('공유 링크가 유효하지 않거나 만료됐어요.');
+      location.hash=''; showScreen(currentUser?'home':'login'); return;
     }
-  });
-  loadMyTrips();
-  loadFavorites();
-  showScreen('home');
-  setTimeout(()=>openTrip(shareId),800);
+
+    isSharedMode=true; sharedTripId=shareId;
+
+    // 실시간 리스너 (로그인 여부 무관하게 읽기 가능)
+    if(sharedTripListener)sharedTripListener();
+    sharedTripListener = db.collection('sharedTrips').doc(shareId).onSnapshot(snap=>{
+      if(!snap.exists)return;
+      const data={...snap.data(),id:shareId};
+      // Firestore Timestamp 직렬화
+      if(data.updatedAt&&data.updatedAt.toDate) data.updatedAt=data.updatedAt.toDate().toISOString();
+      if(data.sharedAt&&data.sharedAt.toDate) data.sharedAt=data.sharedAt.toDate().toISOString();
+      const idx=trips.findIndex(t=>t.id===shareId);
+      if(idx===-1)trips.push(data); else trips[idx]=data;
+      if(currentTripId===shareId){
+        renderDaysRail();renderDayHeader();renderTimeline();renderMapMarkers();
+      }
+    });
+
+    if(currentUser){
+      loadMyTrips();
+      loadFavorites();
+    }
+    showScreen('home');
+    setTimeout(()=>openTrip(shareId),800);
+  }catch(err){
+    console.error('openSharedTrip error:', err);
+    alert('공유 링크를 열 수 없어요: '+err.message);
+    location.hash='';
+    showScreen(currentUser?'home':'login');
+  }
 }
 
 async function shareTrip(trip){
