@@ -138,9 +138,13 @@ input,textarea,select{font-family:inherit;font-size:inherit;color:inherit;}
 .day-header{padding:20px 25px 10px;}
 .day-header h2{font-family:"Cafe24Ssurround","Pretendard Variable",sans-serif;font-weight:400;font-size:25px;letter-spacing:-.02em;line-height:1.15;}
 .day-header h2 em{font-style:italic;color:var(--accent);}
-.day-header .subtitle{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-top:5px;display:flex;align-items:center;gap:10px;}
-.remove-day-btn{color:var(--muted);font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;border:1px solid var(--hairline-strong);padding:2px 7px;border-radius:4px;}
+.day-header .subtitle{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-top:6px;display:flex;align-items:center;gap:8px;flex-wrap:nowrap;overflow:hidden;}
+.remove-day-btn{color:var(--muted);font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;border:1px solid var(--hairline-strong);padding:2px 7px;border-radius:4px;white-space:nowrap;}
 .remove-day-btn:hover{color:#B8564F;border-color:#B8564F;}
+.route-toggle{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:99px;border:1px solid var(--hairline-strong);font-size:9.5px;font-weight:500;font-family:var(--mono);letter-spacing:.06em;color:var(--ink-2);cursor:pointer;transition:all .15s;white-space:nowrap;background:var(--surface);}
+.route-toggle:hover,.route-toggle.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+.route-toggle svg{width:11px;height:11px;stroke-width:2;flex-shrink:0;}
+.route-info-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;background:rgba(42,74,58,.1);color:var(--accent);border-radius:99px;font-family:var(--mono);font-size:9.5px;font-weight:500;letter-spacing:.06em;white-space:nowrap;}
 .timeline{flex:1;overflow-y:auto;padding:6px 25px 120px;}
 .timeline::-webkit-scrollbar{width:5px;}
 .timeline::-webkit-scrollbar-thumb{background:var(--hairline-strong);border-radius:10px;}
@@ -299,6 +303,14 @@ input,textarea,select{font-family:inherit;font-size:inherit;color:inherit;}
 #cat-color-custom{width:36px;height:36px;border-radius:50%;border:2px solid var(--hairline);cursor:pointer;padding:0;overflow:hidden;background:none;}
 #cat-color-custom::-webkit-color-swatch-wrapper{padding:0;}
 #cat-color-custom::-webkit-color-swatch{border:none;border-radius:50%;}
+
+/* DRAG REORDER */
+.tl-main-event{cursor:grab;}
+.tl-main-event.dragging{opacity:.4;cursor:grabbing;}
+.tl-main-event.drag-over{border-color:var(--accent);border-style:dashed;background:rgba(42,74,58,.04);}
+.tl-drag-handle{display:flex;align-items:center;justify-content:center;width:20px;color:var(--muted);cursor:grab;flex-shrink:0;opacity:.4;}
+.tl-drag-handle:hover{opacity:1;color:var(--ink);}
+.tl-drag-handle svg{width:14px;height:14px;}
 
 /* ROUTE */
 .route-toggle{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:99px;border:1px solid var(--hairline-strong);font-size:11.5px;font-weight:500;color:var(--ink-2);cursor:pointer;transition:all .15s;background:var(--surface);}
@@ -1270,8 +1282,20 @@ function renderTimeline(){
         </div>`;
       }
 
-      html+=`<div class="tl-main-event${selected?' selected':''}" onclick="selectEvent('${ev.id}')">
+      html+=`<div class="tl-main-event${selected?' selected':''}" 
+        draggable="true"
+        data-ev-id="${ev.id}"
+        data-ev-idx="${idx}"
+        onclick="selectEvent('${ev.id}')"
+        ondragstart="onDragStart(event,'${ev.id}')"
+        ondragover="onDragOver(event)"
+        ondragleave="onDragLeave(event)"
+        ondrop="onDrop(event,'${ev.id}')"
+        ondragend="onDragEnd(event)">
         <div class="tl-main-event-top">
+          <div class="tl-drag-handle" onclick="event.stopPropagation()" title="드래그하여 순서 변경">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="18" x2="16" y2="18"/></svg>
+          </div>
           <div class="tl-main-icon ${iconClass}">${iconSvg}</div>
           <div class="tl-main-info">
             <div class="tl-main-title">${esc(ev.title)}</div>
@@ -1522,7 +1546,52 @@ function renderMapMarkers(){
   else{map.setCenter(new naver.maps.LatLng(day.center[0],day.center[1]));map.setZoom(12);}
 }
 
-// ====== ROUTING (OSRM) ======
+// ====== DRAG & DROP REORDER ======
+let dragSrcId = null;
+
+function onDragStart(e, evId){
+  dragSrcId = evId;
+  e.dataTransfer.effectAllowed = 'move';
+  setTimeout(()=>e.target.classList.add('dragging'), 0);
+}
+
+function onDragOver(e){
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  const card = e.currentTarget;
+  if(card.dataset.evId !== dragSrcId) card.classList.add('drag-over');
+}
+
+function onDragLeave(e){
+  e.currentTarget.classList.remove('drag-over');
+}
+
+function onDragEnd(e){
+  e.target.classList.remove('dragging');
+  document.querySelectorAll('.tl-main-event').forEach(el=>el.classList.remove('drag-over'));
+  dragSrcId = null;
+}
+
+function onDrop(e, targetId){
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if(!dragSrcId || dragSrcId === targetId) return;
+
+  const trip = curTrip(); if(!trip) return;
+  const events = trip.days[state.currentDay].events;
+
+  const srcIdx = events.findIndex(ev=>ev.id===dragSrcId);
+  const tgtIdx = events.findIndex(ev=>ev.id===targetId);
+  if(srcIdx===-1||tgtIdx===-1) return;
+
+  // 순서 변경
+  const [moved] = events.splice(srcIdx, 1);
+  events.splice(tgtIdx, 0, moved);
+
+  saveCurrentTrip();
+  renderTimeline();
+  renderMapMarkers();
+}
 let routePolylines = [];
 let showingRoute = false;
 let routeCache = {}; // key: "lat1,lng1-lat2,lng2"
