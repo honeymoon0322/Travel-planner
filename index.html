@@ -2037,11 +2037,39 @@ async function doMapSearch(){
   const cLat=center?center.lat():37.5665;
   const cLng=center?center.lng():126.9780;
 
+  // 현재 지역명 역지오코딩으로 가져오기 (검색어 앞에 붙임)
+  let regionPrefix='';
+  if(map&&typeof naver!=='undefined'&&naver.maps.Service){
+    await new Promise(resolve=>{
+      try{
+        naver.maps.Service.reverseGeocode({
+          coords:new naver.maps.LatLng(cLat,cLng),
+          orders:naver.maps.Service.OrderType.ROAD_ADDR
+        },function(status,response){
+          try{
+            if(status!==naver.maps.Service.Status.ERROR&&response.v2){
+              const addr=response.v2.address.roadAddress||'';
+              // "서울특별시 마포구" 같은 시/구까지만 추출
+              const parts=addr.split(' ');
+              regionPrefix=parts.slice(0,2).join(' ');
+            }
+          }catch(e){}
+          resolve();
+        });
+      }catch(e){resolve();}
+    });
+  }
+
+  // 지역명이 이미 검색어에 있으면 붙이지 않음
+  const finalQ = (regionPrefix && !q.includes(regionPrefix.split(' ').pop())) 
+    ? `${regionPrefix} ${q}` 
+    : q;
+
   let allItems=[];
 
-  // 1) 네이버 지역 검색 — 현재 지도 중심 기준으로 검색
+  // 1) 네이버 지역 검색 — 지역명 포함 검색어로
   try{
-    const url=`/api/search?q=${encodeURIComponent(q)}&x=${cLng}&y=${cLat}&radius=20000`;
+    const url=`/api/search?q=${encodeURIComponent(finalQ)}&display=10`;
     const r=await fetch(url);
     if(r.ok){
       const data=await r.json();
@@ -2060,9 +2088,29 @@ async function doMapSearch(){
     }
   }catch(e){ console.warn('Naver search failed', e); }
 
+  // 결과가 없으면 지역명 없이 재시도
+  if(!allItems.length && regionPrefix){
+    try{
+      const r=await fetch(`/api/search?q=${encodeURIComponent(q)}&display=10`);
+      if(r.ok){
+        const data=await r.json();
+        allItems=(data.items||[]).map(item=>({
+          name:item.title.replace(/<[^>]*>/g,''),
+          addr:item.roadAddress||item.address||'',
+          category:item.category||'',
+          tel:item.telephone||'',
+          link:item.link||'',
+          lat:parseInt(item.mapy)/10000000,
+          lng:parseInt(item.mapx)/10000000,
+          src:'naver'
+        }));
+      }
+    }catch(e){}
+  }
+
   // 2) Nominatim 병행 (해외 장소 보완)
   try{
-    const r=await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=5&namedetails=1&accept-language=ko,en&lat=${cLat}&lon=${cLng}`);
+    const r=await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=5&namedetails=1&accept-language=ko,en&viewbox=${cLng-0.2},${cLat+0.2},${cLng+0.2},${cLat-0.2}&bounded=1`);
     const data=await r.json();
     const nomItems=data.map(d=>({
       name:(d.namedetails&&(d.namedetails['name:ko']||d.namedetails.name))||d.display_name.split(',')[0],
@@ -2083,7 +2131,7 @@ async function doMapSearch(){
 
   // 3) 지도 중심에서 거리순 정렬
   allItems.forEach(item=>{
-    item._dist=Math.hypot(item.lat-cLat, item.lng-cLng)*111000; // 미터
+    item._dist=Math.hypot(item.lat-cLat, item.lng-cLng)*111000;
   });
   allItems.sort((a,b)=>a._dist-b._dist);
 
