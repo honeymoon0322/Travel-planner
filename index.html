@@ -867,7 +867,14 @@ function loadMyTrips(){
   tripsListener = db.collection('users').doc(currentUser.uid)
     .collection('trips').orderBy('updatedAt','desc')
     .onSnapshot(snap=>{
-      trips = snap.docs.map(d=>({...d.data(),id:d.id}));
+      const myTrips=snap.docs.map(d=>{
+        const data={...d.data(),id:d.id};
+        if(data.updatedAt&&data.updatedAt.toDate)data.updatedAt=data.updatedAt.toDate().toISOString();
+        return data;
+      });
+      // 공유 여행은 유지
+      const shared=isSharedMode&&sharedTripId?trips.filter(t=>t.id===sharedTripId):[];
+      trips=[...myTrips,...shared];
       renderHomeScreen();
     }, e=>console.warn('trips error',e));
 }
@@ -895,37 +902,45 @@ let sharedTripId = null;
 
 async function openSharedTrip(shareId){
   try{
-    const doc = await db.collection('sharedTrips').doc(shareId).get();
+    const doc=await db.collection('sharedTrips').doc(shareId).get();
     if(!doc.exists){
       alert('공유 링크가 유효하지 않거나 만료됐어요.');
       location.hash=''; showScreen(currentUser?'home':'login'); return;
     }
 
+    // 즉시 trips에 추가 (타이밍 문제 방지)
+    function cleanData(raw){
+      const d={...raw,id:shareId};
+      if(d.updatedAt&&d.updatedAt.toDate)d.updatedAt=d.updatedAt.toDate().toISOString();
+      if(d.sharedAt&&d.sharedAt.toDate)d.sharedAt=d.sharedAt.toDate().toISOString();
+      return d;
+    }
+    const initialData=cleanData(doc.data());
+    const existIdx=trips.findIndex(t=>t.id===shareId);
+    if(existIdx===-1)trips.push(initialData); else trips[existIdx]=initialData;
+
     isSharedMode=true; sharedTripId=shareId;
 
-    // 실시간 리스너 (로그인 여부 무관하게 읽기 가능)
+    // 실시간 리스너
     if(sharedTripListener)sharedTripListener();
-    sharedTripListener = db.collection('sharedTrips').doc(shareId).onSnapshot(snap=>{
+    sharedTripListener=db.collection('sharedTrips').doc(shareId).onSnapshot(snap=>{
       if(!snap.exists)return;
-      const data={...snap.data(),id:shareId};
-      // Firestore Timestamp 직렬화
-      if(data.updatedAt&&data.updatedAt.toDate) data.updatedAt=data.updatedAt.toDate().toISOString();
-      if(data.sharedAt&&data.sharedAt.toDate) data.sharedAt=data.sharedAt.toDate().toISOString();
-      const idx=trips.findIndex(t=>t.id===shareId);
-      if(idx===-1)trips.push(data); else trips[idx]=data;
+      const updated=cleanData(snap.data());
+      const i=trips.findIndex(t=>t.id===shareId);
+      if(i===-1)trips.push(updated); else trips[i]=updated;
       if(currentTripId===shareId){
         renderDaysRail();renderDayHeader();renderTimeline();renderMapMarkers();
+      } else {
+        renderHomeScreen();
       }
     });
 
-    if(currentUser){
-      loadMyTrips();
-      loadFavorites();
-    }
+    if(currentUser){loadMyTrips();loadFavorites();}
     showScreen('home');
-    setTimeout(()=>openTrip(shareId),800);
+    renderHomeScreen();
+    openTrip(shareId); // 데이터 이미 있으므로 바로 열기
   }catch(err){
-    console.error('openSharedTrip error:', err);
+    console.error('openSharedTrip error:',err);
     alert('공유 링크를 열 수 없어요: '+err.message);
     location.hash='';
     showScreen(currentUser?'home':'login');
