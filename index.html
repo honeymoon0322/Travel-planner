@@ -300,6 +300,12 @@ input,textarea,select{font-family:inherit;font-size:inherit;color:inherit;}
 #cat-color-custom::-webkit-color-swatch-wrapper{padding:0;}
 #cat-color-custom::-webkit-color-swatch{border:none;border-radius:50%;}
 
+/* ROUTE */
+.route-toggle{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:99px;border:1px solid var(--hairline-strong);font-size:11.5px;font-weight:500;color:var(--ink-2);cursor:pointer;transition:all .15s;background:var(--surface);}
+.route-toggle:hover,.route-toggle.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+.route-toggle svg{width:12px;height:12px;stroke-width:2;}
+.route-info-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;background:rgba(42,74,58,.1);color:var(--accent);border-radius:99px;font-family:var(--mono);font-size:10px;font-weight:500;}
+
 /* PARTICIPANTS */
 .participants-row{display:flex;align-items:center;gap:-4px;cursor:pointer;}
 .participant-avatar{width:28px;height:28px;border-radius:50%;border:2px solid var(--surface);object-fit:cover;margin-left:-6px;transition:transform .15s;background:var(--surface-warm);}
@@ -1035,12 +1041,13 @@ async function shareTrip(trip){
 async function saveCurrentTrip(){
   const trip=curTrip(); if(!trip)return;
   if(isSharedMode&&sharedTripId===trip.id){
-    // 공유 링크로 접속한 경우 → sharedTrips만 업데이트
+    // 공유 링크로 접속한 참여자 → sharedTrips만 업데이트
     const data=JSON.parse(JSON.stringify(trip,(k,v)=>{
       if(v&&typeof v==='object'&&typeof v.toDate==='function')return v.toDate().toISOString();
       return v;
     }));
     data.updatedAt=firebase.firestore.FieldValue.serverTimestamp();
+    data.lastEditBy=currentUser?.uid||'anonymous';
     await db.collection('sharedTrips').doc(trip.id).set(data);
   } else {
     // 본인 여행 → 개인 컬렉션 저장
@@ -1053,6 +1060,8 @@ async function saveCurrentTrip(){
           return v;
         }));
         data.updatedAt=firebase.firestore.FieldValue.serverTimestamp();
+        data.lastEditBy=currentUser?.uid||'anonymous'; // 내가 저장했음을 표시
+        if(window._lastSaveTimeRef)window._lastSaveTimeRef.set(Date.now());
         await db.collection('sharedTrips').doc(trip.id).set(data);
       }catch(e){ console.warn('sharedTrips sync failed',e); }
     }
@@ -1136,9 +1145,39 @@ function openTrip(id){
   const trip=trips.find(t=>t.id===id);if(!trip)return;
   currentTripId=id;state={currentDay:0,selectedEventId:null,editingEventId:null,editingType:'activity'};
   showScreen('trip');updateTripHeader();renderDaysRail();renderDayHeader();renderTimeline();
-  // 공유된 여행이면 참여자 리스닝 시작
-  if(trip.isShared) listenParticipants(id);
-  else document.getElementById('participants-row').innerHTML=''; // 비공유 여행은 참여자 영역 비움
+
+  // 공유된 여행이면 sharedTrips도 실시간 리스닝 (다른 참여자 변경사항 수신)
+  if(trip.isShared||isSharedMode){
+    listenParticipants(id);
+    // 오너인 경우에도 sharedTrips 변경사항 수신
+    if(!isSharedMode&&trip.isShared){
+      if(sharedTripListener)sharedTripListener();
+      sharedTripId=id;
+      let lastSaveTime=0;
+      sharedTripListener=db.collection('sharedTrips').doc(id).onSnapshot(snap=>{
+        if(!snap.exists)return;
+        const updated={...snap.data(),id};
+        if(updated.updatedAt?.toDate)updated.updatedAt=updated.updatedAt.toDate().toISOString();
+        if(updated.sharedAt?.toDate)updated.sharedAt=updated.sharedAt.toDate().toISOString();
+        // 내가 방금(2초 이내) 저장한 것은 무시
+        const editBy=updated.lastEditBy||'';
+        if(editBy===currentUser?.uid&&Date.now()-lastSaveTime<3000)return;
+        // 다른 사람의 변경사항 → 내 trips 업데이트 후 렌더
+        const idx=trips.findIndex(t=>t.id===id);
+        if(idx!==-1){
+          trips[idx]={...updated,isShared:true};
+          if(currentTripId===id){
+            renderDaysRail();renderDayHeader();renderTimeline();renderMapMarkers();
+          }
+        }
+      });
+      // 저장 시 타임스탬프 갱신 (외부에서 접근 가능하게)
+      window._lastSaveTimeRef={set:t=>lastSaveTime=t};
+    }
+  } else {
+    document.getElementById('participants-row').innerHTML='';
+  }
+
   setTimeout(()=>{
     if(!naverLoaded)return;
     if(map){try{map.destroy();}catch(e){}map=null;markers=[];}
@@ -1159,10 +1198,25 @@ function renderDaysRail(){
 }
 function addDay(){const trip=curTrip();if(!trip)return;const n=trip.days.length+1;trip.days.push({label:n+'번째 날',date:'날짜 미정',center:[37.5665,126.9780],events:[]});saveCurrentTrip();renderDaysRail();}
 function removeDay(idx){const trip=curTrip();if(!trip||trip.days.length<=1){alert('최소 1일은 있어야 해요.');return;}if(!confirm('이 날 전체를 삭제할까요?'))return;trip.days.splice(idx,1);if(state.currentDay>=trip.days.length)state.currentDay=trip.days.length-1;saveCurrentTrip();renderDaysRail();renderDayHeader();renderTimeline();renderMapMarkers();}
-function selectDay(i){state.currentDay=i;state.selectedEventId=null;closeDetail();renderDaysRail();renderDayHeader();renderTimeline();renderMapMarkers();}
+function selectDay(i){
+  state.currentDay=i;state.selectedEventId=null;
+  clearRoutePolylines();showingRoute=false;
+  closeDetail();renderDaysRail();renderDayHeader();renderTimeline();renderMapMarkers();
+}
 function renderDayHeader(){
   const trip=curTrip();if(!trip)return;const day=trip.days[state.currentDay];
-  document.getElementById('day-header').innerHTML=`<h2>Day 0${state.currentDay+1} · <em>${esc(day.label)}</em></h2><div class="subtitle">${esc(day.date)} · ${day.events.length}개 항목 <button class="remove-day-btn" onclick="removeDay(${state.currentDay})">날 삭제</button></div>`;
+  const hasLocations=day.events.filter(e=>e.location&&['activity','food','lodging'].includes(e.type)).length>=2;
+  document.getElementById('day-header').innerHTML=`
+    <h2>Day 0${state.currentDay+1} · <em>${esc(day.label)}</em></h2>
+    <div class="subtitle">
+      ${esc(day.date)} · ${day.events.length}개 항목
+      <button class="remove-day-btn" onclick="removeDay(${state.currentDay})">날 삭제</button>
+      ${hasLocations?`<button class="route-toggle${showingRoute?' active':''}" id="route-toggle-btn" onclick="toggleRoute()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        ${showingRoute?'경로 숨기기':'경로 보기'}
+      </button>`:''}
+      <span id="route-summary"></span>
+    </div>`;
 }
 
 // TIMELINE
@@ -1468,7 +1522,94 @@ function renderMapMarkers(){
   else{map.setCenter(new naver.maps.LatLng(day.center[0],day.center[1]));map.setZoom(12);}
 }
 
-// DETAIL
+// ====== ROUTING (OSRM) ======
+let routePolylines = [];
+let showingRoute = false;
+let routeCache = {}; // key: "lat1,lng1-lat2,lng2"
+
+function clearRoutePolylines(){
+  routePolylines.forEach(p=>p.setMap(null));
+  routePolylines=[];
+}
+
+async function fetchRoute(from, to){
+  const key=`${from.lat.toFixed(5)},${from.lng.toFixed(5)}-${to.lat.toFixed(5)},${to.lng.toFixed(5)}`;
+  if(routeCache[key]) return routeCache[key];
+  try{
+    const url=`https://router.project-osrm.org/route/v1/driving/${from.lng},${from.lat};${to.lng},${to.lat}?overview=full&geometries=geojson&steps=false`;
+    const res=await fetch(url);
+    const data=await res.json();
+    if(data.code==='Ok'&&data.routes.length>0){
+      const route=data.routes[0];
+      const result={
+        duration: route.duration, // 초
+        distance: route.distance, // 미터
+        coords: route.geometry.coordinates.map(c=>new naver.maps.LatLng(c[1],c[0]))
+      };
+      routeCache[key]=result;
+      return result;
+    }
+  }catch(e){ console.warn('OSRM error',e); }
+  return null;
+}
+
+async function toggleRoute(){
+  if(showingRoute){ clearRoutePolylines(); showingRoute=false; renderDayHeader(); return; }
+  showingRoute=true;
+  renderDayHeader();
+  document.getElementById('route-summary').textContent='경로 계산 중...';
+  await drawDayRoute();
+}
+
+async function drawDayRoute(){
+  if(!map||typeof naver==='undefined')return;
+  clearRoutePolylines();
+  const trip=curTrip();if(!trip)return;
+  const day=trip.days[state.currentDay];
+  const locs=day.events.filter(e=>e.location&&['activity','food','lodging'].includes(e.type)).map(e=>e.location);
+  if(locs.length<2){ document.getElementById('route-summary').textContent=''; return; }
+
+  let totalDuration=0, totalDistance=0;
+  const colors=['#2A4A3A','#E85D4A','#E8A23A','#2196F3','#9C27B0'];
+
+  for(let i=0;i<locs.length-1;i++){
+    const route=await fetchRoute(locs[i], locs[i+1]);
+    if(!route) continue;
+    totalDuration+=route.duration;
+    totalDistance+=route.distance;
+    // 실선 경로
+    const polyline=new naver.maps.Polyline({
+      path: route.coords,
+      strokeColor: colors[i%colors.length],
+      strokeWeight: 5,
+      strokeOpacity: 0.85,
+      strokeStyle: 'solid',
+      map
+    });
+    routePolylines.push(polyline);
+    // 출발/도착 사이 시간 표시 오버레이
+    const midIdx=Math.floor(route.coords.length/2);
+    const midPt=route.coords[midIdx];
+    const durationMin=Math.round(route.duration/60);
+    const distKm=(route.distance/1000).toFixed(1);
+    const label=new naver.maps.Marker({
+      position:midPt, map,
+      icon:{
+        content:`<div style="background:${colors[i%colors.length]};color:#fff;padding:3px 8px;border-radius:99px;font-family:var(--mono);font-size:10px;font-weight:600;box-shadow:0 2px 6px rgba(0,0,0,.2);white-space:nowrap">약 ${durationMin}분 · ${distKm}km</div>`,
+        anchor: new naver.maps.Point(40, 12)
+      },
+      zIndex: 700
+    });
+    routePolylines.push(label);
+  }
+
+  // 요약 표시
+  const totalMin=Math.round(totalDuration/60);
+  const totalKm=(totalDistance/1000).toFixed(1);
+  const summary=document.getElementById('route-summary');
+  if(summary) summary.innerHTML=`<span class="route-info-badge">총 약 ${totalMin}분 · ${totalKm}km</span>`;
+}
+
 function selectEvent(id){
   state.selectedEventId=id;const trip=curTrip();if(!trip)return;
   const ev=trip.days[state.currentDay].events.find(e=>e.id===id);if(!ev)return;
