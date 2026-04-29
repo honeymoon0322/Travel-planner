@@ -433,11 +433,154 @@ input,textarea,select{font-family:inherit;font-size:inherit;color:inherit;}
 
 @media(max-width:900px){
   .planner{grid-template-columns:1fr;}
-  .map-panel{display:none;}
   .home-body{padding:24px;}
   .home-greeting h2{font-size:32px;}
   .trips-grid{grid-template-columns:1fr;}
   .trip-meta{display:none;}
+}
+
+.mobile-tab-bar{display:none;} /* 기본 숨김, 모바일에서만 표시 */
+
+/* ====== MOBILE TAB BAR SHOW ====== */
+@media(max-width:768px){
+  .mobile-tab-bar{display:flex;}
+  /* HOME */
+  .home-header{padding:14px 18px;gap:8px;}
+  .home-brand{font-size:22px;}
+  .home-header-right{gap:6px;}
+  .home-header-right .btn{padding:7px 10px;font-size:12px;}
+  .home-body{padding:20px 18px 24px;}
+  .home-greeting h2{font-size:28px;}
+  .home-greeting p{font-size:13px;}
+  .trips-grid{grid-template-columns:1fr;gap:12px;margin-top:20px;}
+  .trip-card{border-radius:16px;}
+  .user-avatar{width:28px;height:28px;}
+
+  /* TRIP TOPBAR */
+  .topbar{padding:10px 14px;gap:8px;}
+  .topbar-right .btn-ghost span,.topbar-right .btn-outline span{display:none;}
+  .topbar-right{gap:4px;}
+  .topbar-right .btn{padding:7px 9px;}
+  .brand-mark{font-size:18px;}
+  .back-btn{font-size:12px;padding:5px 8px;}
+  .participants-row{display:none;} /* 모바일에서 참여자 탑바 숨김 */
+  .trip-meta{display:none;}
+
+  /* PLANNER LAYOUT: 탭 전환 방식 */
+  .planner{flex-direction:column;flex:1;position:relative;}
+  .sidebar{
+    width:100%;
+    flex:1;
+    border-right:none;
+    border-bottom:none;
+    display:none; /* 기본 숨김, JS로 토글 */
+    overflow-y:auto;
+  }
+  .sidebar.mob-active{display:flex;}
+  .map-panel{
+    flex:1;
+    width:100%;
+    min-height:0;
+  }
+  .map-panel.mob-hidden{display:none;}
+  .timeline{padding:8px 12px 100px;}
+
+  /* MOBILE TAB BAR */
+  .mobile-tab-bar{
+    display:flex;
+    position:fixed;
+    bottom:0;left:0;right:0;
+    background:var(--surface);
+    border-top:1px solid var(--hairline);
+    z-index:1200;
+    padding-bottom:env(safe-area-inset-bottom);
+    box-shadow:0 -2px 12px rgba(0,0,0,.08);
+  }
+  .mob-tab{
+    flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:3px;padding:8px 4px 6px;font-size:10px;font-weight:500;color:var(--muted);
+    font-family:var(--kor);cursor:pointer;transition:all .15s;
+  }
+  .mob-tab svg{width:20px;height:20px;stroke-width:1.75;}
+  .mob-tab.active{color:var(--accent);}
+  .mob-tab.active svg{stroke:var(--accent);}
+  .mob-tab-add{
+    flex:1.2;
+    background:var(--ink);color:#fff!important;border-radius:12px;
+    margin:6px 8px;padding:6px 4px;
+  }
+  .mob-tab-add svg{stroke:#fff!important;}
+
+  /* MAP SEARCH on mobile */
+  .map-search{top:10px;left:10px;right:10px;width:auto;}
+
+  /* RIGHT PANEL → bottom sheet */
+  .map-right-panel{
+    width:100%!important;
+    height:auto!important;
+    max-height:85vh;
+    top:auto!important;
+    bottom:64px; /* tab bar 높이 */
+    right:0;left:0;
+    border-radius:20px 20px 0 0;
+    border-left:none;
+    border-top:1px solid var(--hairline);
+    transform:translateY(120%);
+    box-shadow:0 -4px 24px rgba(0,0,0,.12);
+  }
+  .map-right-panel.show{transform:translateY(0);}
+  /* 드래그 핸들 */
+  .map-right-panel::before{
+    content:'';display:block;width:36px;height:4px;
+    background:var(--hairline-strong);border-radius:2px;
+    margin:10px auto 2px;flex-shrink:0;
+  }
+  .mrp-list{max-height:240px;}
+
+  /* MODALS → bottom sheet */
+  .modal-backdrop{align-items:flex-end;}
+  .modal{
+    border-radius:20px 20px 0 0!important;
+    max-width:100%!important;
+    width:100%!important;
+    margin:0!important;
+    max-height:90vh;
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  .modal-head{padding:16px 20px 12px;}
+  .modal-body{padding:12px 20px 16px;}
+  .modal-foot{padding:10px 20px 16px;}
+
+  /* DAY HEADER */
+  .day-header{padding:14px 16px 8px;}
+  .day-header h2{font-size:20px;}
+  .day-header .subtitle{font-size:9px;gap:6px;}
+
+  /* TIMELINE CARDS */
+  .tl-main-event{padding:12px 14px;margin:6px 0;}
+  .tl-main-title{font-size:14px;}
+  .tl-main-icon{width:32px;height:32px;}
+  .tl-main-icon svg{width:14px;height:14px;}
+
+  /* FAV PANEL on mobile */
+  .fav-panel{border-radius:20px 20px 0 0;}
+
+  /* LOGIN */
+  .login-box{padding:36px 24px;}
+  .login-logo{font-size:30px;}
+
+  /* SEARCH RESULTS */
+  .map-search-results{left:0!important;right:0!important;width:auto!important;border-radius:0 0 16px 16px;}
+
+  /* TOPBAR buttons - icon only */
+  .btn-ghost .btn-label,.btn-outline .btn-label{display:none;}
+}
+
+/* 아주 작은 화면 */
+@media(max-width:380px){
+  .home-greeting h2{font-size:24px;}
+  .mob-tab{font-size:9px;}
+  .mob-tab svg{width:18px;height:18px;}
 }
 </style>
 <!-- Firebase SDK -->
@@ -1158,6 +1301,9 @@ function openTrip(id){
   currentTripId=id;state={currentDay:0,selectedEventId:null,editingEventId:null,editingType:'activity'};
   showScreen('trip');updateTripHeader();renderDaysRail();renderDayHeader();renderTimeline();
 
+  // 모바일: 지도 탭 기본 활성화
+  if(isMobile()) switchMobileTab('map');
+
   // 공유된 여행이면 sharedTrips도 실시간 리스닝 (다른 참여자 변경사항 수신)
   if(trip.isShared||isSharedMode){
     listenParticipants(id);
@@ -1546,7 +1692,35 @@ function renderMapMarkers(){
   else{map.setCenter(new naver.maps.LatLng(day.center[0],day.center[1]));map.setZoom(12);}
 }
 
-// ====== DRAG & DROP REORDER ======
+// ====== MOBILE TAB ======
+let mobileActiveTab = 'map';
+
+function switchMobileTab(tab){
+  mobileActiveTab = tab;
+  const sidebar = document.querySelector('.sidebar');
+  const mapPanel = document.querySelector('.map-panel');
+  const tabMap = document.getElementById('tab-map');
+  const tabTimeline = document.getElementById('tab-timeline');
+
+  if(tab === 'map'){
+    sidebar?.classList.remove('mob-active');
+    mapPanel?.classList.remove('mob-hidden');
+    tabMap?.classList.add('active');
+    tabTimeline?.classList.remove('active');
+    // 지도 resize
+    if(map) setTimeout(()=>{ try{naver.maps.Event.trigger(map,'resize');map.autoResize();}catch(e){} }, 100);
+  } else {
+    sidebar?.classList.add('mob-active');
+    mapPanel?.classList.add('mob-hidden');
+    tabMap?.classList.remove('active');
+    tabTimeline?.classList.add('active');
+  }
+}
+
+function isMobile(){ return window.innerWidth <= 768; }
+
+// 모바일에서 일정 추가 후 타임라인 탭으로 이동
+
 let dragSrcId = null;
 
 function onDragStart(e, evId){
@@ -1745,6 +1919,7 @@ function saveEvent(){
   if(state.editingEventId){const i=day.events.findIndex(e=>e.id===state.editingEventId);if(i!==-1)day.events[i]=ev;}
   else{day.events.push(ev);day.events.sort((a,b)=>(a.time||'').localeCompare(b.time||''));}
   saveCurrentTrip();closeModal('modal-event');renderDayHeader();renderTimeline();renderMapMarkers();
+  if(isMobile()) switchMobileTab('timeline');
 }
 function clearEventForm(){['f-title','f-time','f-endtime','f-airline','f-flightno','f-from','f-to','f-terminal','f-gate','f-seat','f-booking','f-locname','f-lat','f-lng','f-notes','f-checkin','f-checkout','f-checkin-date','f-checkout-date','f-lodging-booking'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});}
 function setFormType(type){
@@ -2168,6 +2343,8 @@ function selectPlace(lat,lng,name,addr,category,tel){
     showSearchPin(lat,lng);
   }
   closeMapSearch();
+  // 모바일: 지도 탭으로 전환
+  if(isMobile()) switchMobileTab('map');
 
   // 오른쪽 패널에 표시
   const panel=document.getElementById('map-right-panel');
@@ -2581,7 +2758,27 @@ document.addEventListener('click',e=>{
   }
 });
 </script>
-<!-- Hidden SVG icon sprites - referenced by JS -->
+<!-- Mobile Tab Bar (trip screen) -->
+<div class="mobile-tab-bar" id="mobile-tab-bar">
+  <button class="mob-tab active" id="tab-map" onclick="switchMobileTab('map')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+    지도
+  </button>
+  <button class="mob-tab" id="tab-timeline" onclick="switchMobileTab('timeline')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+    일정
+  </button>
+  <button class="mob-tab mob-tab-add" onclick="openAddEvent()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    추가
+  </button>
+  <button class="mob-tab" id="tab-fav" onclick="openFavPanel()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+    즐겨찾기
+  </button>
+</div>
+
+</body>
 <div id="svg-icons" style="display:none">
   <svg id="icon-flight" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg>
   <svg id="icon-transit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="16" rx="2"/><path d="M4 11h16"/><circle cx="8" cy="15" r="1"/><circle cx="16" cy="15" r="1"/></svg>
