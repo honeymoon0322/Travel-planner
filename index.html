@@ -933,11 +933,20 @@ async function openSharedTrip(shareId){
 }
 
 async function shareTrip(trip){
-  const data=JSON.parse(JSON.stringify(trip));
-  data.sharedAt=firebase.firestore.FieldValue.serverTimestamp();
-  data.sharedBy=currentUser?.uid||'anonymous';
-  await db.collection('sharedTrips').doc(trip.id).set(data);
-  return location.origin+location.pathname+'#share='+trip.id;
+  try{
+    const data=JSON.parse(JSON.stringify(trip,(k,v)=>{
+      if(v&&typeof v==='object'&&typeof v.toDate==='function')return v.toDate().toISOString();
+      return v;
+    }));
+    data.sharedAt=firebase.firestore.FieldValue.serverTimestamp();
+    data.sharedBy=currentUser?.uid||'anonymous';
+    await db.collection('sharedTrips').doc(trip.id).set(data);
+    console.log('✅ sharedTrips에 저장 완료:', trip.id);
+    return location.origin+location.pathname+'#share='+trip.id;
+  }catch(err){
+    console.error('❌ shareTrip 실패:', err);
+    throw err;
+  }
 }
 
 async function saveCurrentTrip(){
@@ -1484,8 +1493,13 @@ async function openShareModal(){
   document.getElementById('share-link-input').value='링크 생성 중...';
   document.getElementById('copy-ok').classList.remove('show');
   openModal('modal-share');
-  const url = await shareTrip(trip);
-  document.getElementById('share-link-input').value=url;
+  try{
+    const url = await shareTrip(trip);
+    document.getElementById('share-link-input').value=url;
+  }catch(err){
+    document.getElementById('share-link-input').value='링크 생성 실패 — Firestore 규칙을 확인해 주세요';
+    console.error('share modal error:', err);
+  }
 }
 function copyShareLink(){const inp=document.getElementById('share-link-input');navigator.clipboard.writeText(inp.value).catch(()=>{inp.select();document.execCommand('copy');});document.getElementById('copy-ok').classList.add('show');}
 async function quickShare(id){
@@ -1494,7 +1508,22 @@ async function quickShare(id){
   navigator.clipboard.writeText(url).catch(()=>{});
   alert('공유 링크가 복사됐어요!\n\n링크를 열면 실시간으로 함께 편집할 수 있어요!');
 }
-function openInviteInput(){const url=prompt('공유받은 링크를 붙여넣어 주세요:');if(!url)return;try{const h=(url.split('#')[1]||'');if(!h.startsWith('share=')){alert('올바른 Wayfarer 공유 링크가 아닌 것 같아요.');return;}const d=decodeTrip(h.slice(6));if(!d)throw new Error();showInviteModal(d);}catch(e){alert('링크를 읽을 수 없어요. 링크가 올바른지 확인해 주세요.');}}
+async function openInviteInput(){
+  const url=prompt('공유받은 링크를 붙여넣어 주세요:');
+  if(!url)return;
+  try{
+    const h=(url.split('#')[1]||'');
+    if(!h.startsWith('share=')){alert('올바른 Wayfarer 공유 링크가 아닌 것 같아요.');return;}
+    const shareId=h.slice(6);
+    if(!shareId){alert('링크가 올바르지 않아요.');return;}
+    // Firestore에서 직접 읽기
+    location.hash='#share='+shareId;
+    await openSharedTrip(shareId);
+  }catch(e){
+    console.error('invite error',e);
+    alert('링크를 열 수 없어요: '+e.message);
+  }
+}
 function showInviteModal(trip){pendingInvite=trip;document.getElementById('invite-title').textContent=trip.title;const total=trip.days.reduce((s,d)=>s+d.events.length,0);document.getElementById('invite-meta').textContent=`${trip.days.length}일 · ${total}개 일정 · ${trip.travelers||1}명`;openModal('modal-invite');}
 function acceptInvite(){if(!pendingInvite)return;const t={...pendingInvite,id:genId(),shared:true};saveTripToFirestore(t);pendingInvite=null;closeModal('modal-invite');setTimeout(()=>openTrip(t.id),500);}
 
