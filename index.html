@@ -117,6 +117,7 @@ input,textarea,select{font-family:inherit;font-size:inherit;color:inherit;}
 .back-btn:hover{background:var(--hairline);color:var(--ink);}
 .back-btn svg{width:14px;height:14px;stroke-width:2;}
 .brand-mark{font-family:"Cafe24Meongi",serif;font-style:normal;font-weight:400;font-size:22px;letter-spacing:-.01em;}
+.mob-trip-title{display:none;}
 .trip-meta{position:absolute;left:50%;transform:translateX(-50%);text-align:center;pointer-events:none;}
 .trip-title-el{font-family:"Cafe24Ssurround","Pretendard Variable",sans-serif;font-weight:400;font-size:17px;letter-spacing:-.01em;}
 .trip-sub-el{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-top:2px;}
@@ -445,26 +446,34 @@ input,textarea,select{font-family:inherit;font-size:inherit;color:inherit;}
 @media(max-width:768px){
   .mobile-tab-bar{display:flex;}
   /* HOME */
-  .home-header{padding:14px 18px;gap:8px;}
-  .home-brand{font-size:22px;}
-  .home-header-right{gap:6px;}
-  .home-header-right .btn{padding:7px 10px;font-size:12px;}
-  .home-body{padding:20px 18px 24px;}
-  .home-greeting h2{font-size:28px;}
-  .home-greeting p{font-size:13px;}
-  .trips-grid{grid-template-columns:1fr;gap:12px;margin-top:20px;}
-  .trip-card{border-radius:16px;}
-  .user-avatar{width:28px;height:28px;}
+  .home-header{padding:12px 14px;gap:8px;flex-wrap:nowrap;}
+  .home-brand{font-size:20px;}
+  .home-header-right{gap:5px;flex-shrink:0;}
+  .home-header-right .btn{padding:6px 10px;font-size:12px;}
+  .home-body{padding:16px 14px 24px;}
+  .home-greeting h2{font-size:24px;}
+  .home-greeting p{font-size:12px;}
+  .trips-grid{grid-template-columns:1fr;gap:12px;margin-top:14px;}
+  .user-avatar{width:26px;height:26px;}
 
-  /* TRIP TOPBAR */
-  .topbar{padding:10px 14px;gap:8px;}
-  .topbar-right .btn-ghost span,.topbar-right .btn-outline span{display:none;}
-  .topbar-right{gap:4px;}
-  .topbar-right .btn{padding:7px 9px;}
-  .brand-mark{font-size:18px;}
-  .back-btn{font-size:12px;padding:5px 8px;}
-  .participants-row{display:none;} /* 모바일에서 참여자 탑바 숨김 */
+  /* TRIP TOPBAR - 버튼 전부 숨기고 탭바로 대체 */
+  .topbar{padding:8px 12px;gap:6px;flex-wrap:nowrap;min-height:0;}
+  .topbar-left{gap:6px;flex-shrink:0;min-width:0;}
+  .topbar-right{display:none!important;} /* 탭바로 이동했으므로 숨김 */
+  .brand-mark{display:none;}
+  .mob-trip-title{font-size:14px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;}
+  .back-btn{font-size:12px;padding:5px 8px;white-space:nowrap;}
+  .back-btn svg{width:13px;height:13px;}
   .trip-meta{display:none;}
+  .participants-row{display:none;}
+
+  /* 지도 검색바 */
+  .map-search{top:8px;left:8px;right:8px;width:auto!important;max-width:none!important;}
+  #map-search-input{font-size:13px;}
+  .map-search-results{left:0!important;right:0!important;width:auto!important;max-width:none!important;border-radius:12px;}
+
+  /* 범례 숨기기 */
+  .map-legend{display:none!important;}
 
   /* PLANNER LAYOUT: 탭 전환 방식 */
   .planner{flex-direction:column;flex:1;position:relative;}
@@ -472,15 +481,16 @@ input,textarea,select{font-family:inherit;font-size:inherit;color:inherit;}
     width:100%;
     flex:1;
     border-right:none;
-    border-bottom:none;
-    display:none; /* 기본 숨김, JS로 토글 */
+    display:none;
     overflow-y:auto;
   }
+  .sidebar.mob-active{padding-bottom:72px;}
   .sidebar.mob-active{display:flex;}
   .map-panel{
     flex:1;
     width:100%;
     min-height:0;
+    padding-bottom:64px;
   }
   .map-panel.mob-hidden{display:none;}
   .timeline{padding:8px 12px 100px;}
@@ -652,6 +662,7 @@ const db = firebase.firestore();
         내 여행
       </button>
       <span class="brand-mark">Wayfarer</span>
+      <span class="mob-trip-title" id="mob-trip-title"></span>
     </div>
     <div class="trip-meta">
       <div class="trip-title-el" id="trip-title-el"></div>
@@ -1343,7 +1354,13 @@ function openTrip(id){
   },350);
 }
 function curTrip(){return trips.find(t=>t.id===currentTripId);}
-function updateTripHeader(){const trip=curTrip();if(!trip)return;document.getElementById('trip-title-el').textContent=trip.title;document.getElementById('trip-sub-el').textContent=trip.subtitle||'';}
+function updateTripHeader(){
+  const trip=curTrip();if(!trip)return;
+  document.getElementById('trip-title-el').textContent=trip.title;
+  document.getElementById('trip-sub-el').textContent=trip.subtitle||'';
+  const mobTitle=document.getElementById('mob-trip-title');
+  if(mobTitle)mobTitle.textContent=trip.title;
+}
 
 // DAYS
 function renderDaysRail(){
@@ -1681,10 +1698,13 @@ function renderMapMarkers(){
   const day=trip.days[state.currentDay];
   const bounds=new naver.maps.LatLngBounds(new naver.maps.LatLng(90,180),new naver.maps.LatLng(-90,-180));
   let has=false;
-  day.events.forEach((ev,idx)=>{
+  let pinNum=0; // 교통수단 제외한 번호
+  day.events.forEach((ev)=>{
+    if(ev.type==='transit')return; // 교통수단은 건너뜀
+    pinNum++;
     if(!ev.location)return;
     const ll=new naver.maps.LatLng(ev.location.lat,ev.location.lng);
-    const m=new naver.maps.Marker({position:ll,map,icon:{content:`<div class="marker-pin${state.selectedEventId===ev.id?' active':''}" style="background:${TYPE_COLORS[ev.type]}"><span>${idx+1}</span></div>`,anchor:new naver.maps.Point(15,30)}});
+    const m=new naver.maps.Marker({position:ll,map,icon:{content:`<div class="marker-pin${state.selectedEventId===ev.id?' active':''}" style="background:${TYPE_COLORS[ev.type]}"><span>${pinNum}</span></div>`,anchor:new naver.maps.Point(15,30)}});
     naver.maps.Event.addListener(m,'click',()=>selectEvent(ev.id));
     markers.push(m);bounds.extend(ll);has=true;
   });
