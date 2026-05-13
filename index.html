@@ -1518,19 +1518,20 @@ function loadNaverScript(key){
 }
 function initNaverMap(){
   if(typeof naver==='undefined')return;
-  // 현재 여행의 현재 날 중심 좌표 사용
   const trip=curTrip();
   const day=trip?.days?.[state.currentDay];
-  let initLat=37.5665, initLng=126.9780;
+  let initLat=37.5665, initLng=126.9780; // 기본값: 서울
   if(day){
-    // 일정 중 위치 있는 첫 번째 사용
     const firstLoc=day.events?.find(e=>e.location&&e.type!=='transit');
     if(firstLoc?.location){
-      initLat=firstLoc.location.lat;
-      initLng=firstLoc.location.lng;
-    } else if(Array.isArray(day.center)&&day.center.length===2&&day.center[0]&&day.center[1]){
-      initLat=day.center[0];
-      initLng=day.center[1];
+      const la=parseFloat(firstLoc.location.lat);
+      const ln=parseFloat(firstLoc.location.lng);
+      // 유효한 한국 좌표인지 확인 (한국: lat 33-38, lng 125-130)
+      if(!isNaN(la)&&!isNaN(ln)&&la>20&&ln>100){
+        initLat=la; initLng=ln;
+      }
+    } else if(Array.isArray(day.center)&&day.center[0]>20){
+      initLat=day.center[0]; initLng=day.center[1];
     }
   }
   try {
@@ -1713,18 +1714,34 @@ function renderMapMarkers(){
   const day=trip.days[state.currentDay];
   const bounds=new naver.maps.LatLngBounds(new naver.maps.LatLng(90,180),new naver.maps.LatLng(-90,-180));
   let has=false;
-  let pinNum=0; // 교통수단 제외한 번호
+  let firstLat=null, firstLng=null;
+  let pinNum=0;
   day.events.forEach((ev)=>{
-    if(ev.type==='transit')return; // 교통수단은 건너뜀
+    if(ev.type==='transit')return;
     pinNum++;
     if(!ev.location)return;
-    const ll=new naver.maps.LatLng(ev.location.lat,ev.location.lng);
+    const lat=parseFloat(ev.location.lat);
+    const lng=parseFloat(ev.location.lng);
+    if(isNaN(lat)||isNaN(lng))return;
+    if(firstLat===null){firstLat=lat;firstLng=lng;}
+    const ll=new naver.maps.LatLng(lat,lng);
     const m=new naver.maps.Marker({position:ll,map,icon:{content:`<div class="marker-pin${state.selectedEventId===ev.id?' active':''}" style="background:${TYPE_COLORS[ev.type]}"><span>${pinNum}</span></div>`,anchor:new naver.maps.Point(15,30)}});
     naver.maps.Event.addListener(m,'click',()=>selectEvent(ev.id));
     markers.push(m);bounds.extend(ll);has=true;
   });
-  if(has){map.fitBounds(bounds,{top:80,right:80,bottom:80,left:80});setTimeout(()=>{if(map.getZoom()>15)map.setZoom(15);},100);}
-  else{
+  if(has){
+    // 마커가 있으면 fitBounds
+    map.fitBounds(bounds,{top:80,right:80,bottom:80,left:80});
+    setTimeout(()=>{
+      if(map.getZoom()>15)map.setZoom(15);
+      // 지도가 여전히 이상한 곳이면 첫 마커로 강제 이동
+      const c=map.getCenter();
+      if(Math.abs(c.lat())<20&&firstLat&&firstLat>30){
+        map.setCenter(new naver.maps.LatLng(firstLat,firstLng));
+        map.setZoom(12);
+      }
+    },300);
+  } else {
     const c=day.center;
     const lat=(Array.isArray(c)&&c[0])||(typeof c==='object'&&c?.lat)||37.5665;
     const lng=(Array.isArray(c)&&c[1])||(typeof c==='object'&&c?.lng)||126.9780;
