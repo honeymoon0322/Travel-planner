@@ -1518,9 +1518,24 @@ function loadNaverScript(key){
 }
 function initNaverMap(){
   if(typeof naver==='undefined')return;
+  // 현재 여행의 현재 날 중심 좌표 사용
+  const trip=curTrip();
+  const day=trip?.days?.[state.currentDay];
+  let initLat=37.5665, initLng=126.9780;
+  if(day){
+    // 일정 중 위치 있는 첫 번째 사용
+    const firstLoc=day.events?.find(e=>e.location&&e.type!=='transit');
+    if(firstLoc?.location){
+      initLat=firstLoc.location.lat;
+      initLng=firstLoc.location.lng;
+    } else if(Array.isArray(day.center)&&day.center.length===2&&day.center[0]&&day.center[1]){
+      initLat=day.center[0];
+      initLng=day.center[1];
+    }
+  }
   try {
     map=new naver.maps.Map('map',{
-      center:new naver.maps.LatLng(37.5665,126.9780),
+      center:new naver.maps.LatLng(initLat,initLng),
       zoom:12,
       mapTypeControl:false,
       zoomControl:true,
@@ -1709,7 +1724,13 @@ function renderMapMarkers(){
     markers.push(m);bounds.extend(ll);has=true;
   });
   if(has){map.fitBounds(bounds,{top:80,right:80,bottom:80,left:80});setTimeout(()=>{if(map.getZoom()>15)map.setZoom(15);},100);}
-  else{map.setCenter(new naver.maps.LatLng(day.center[0],day.center[1]));map.setZoom(12);}
+  else{
+    const c=day.center;
+    const lat=(Array.isArray(c)&&c[0])||(typeof c==='object'&&c?.lat)||37.5665;
+    const lng=(Array.isArray(c)&&c[1])||(typeof c==='object'&&c?.lng)||126.9780;
+    map.setCenter(new naver.maps.LatLng(lat,lng));
+    map.setZoom(12);
+  }
 }
 
 // ====== MOBILE TAB ======
